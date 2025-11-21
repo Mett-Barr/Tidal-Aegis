@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a55e93e3199ad7443882d42c000e42b1, type: 3}
+  m_Name: Weapon_CIWS_Basic
+  m_EditorClassIdentifier: 
+  DisplayName: CIWS
+  Type: 4
+  Range: 30
+  Cooldown: 0.05
+  Damage: 2
+  ProjectileSpeed: 20
+  GravityMultiplier: 1
+  ProjectilePrefab: {fileID: 5233822824538118443, guid: 53a5e88dc65ed264398d26f2db714d92,
+    type: 3}
+  TargetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295

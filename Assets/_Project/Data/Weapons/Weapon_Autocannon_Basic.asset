@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a55e93e3199ad7443882d42c000e42b1, type: 3}
+  m_Name: Weapon_Autocannon_Basic
+  m_EditorClassIdentifier: 
+  DisplayName: Autocannon
+  Type: 3
+  Range: 50
+  Cooldown: 0.2
+  Damage: 5
+  ProjectileSpeed: 20
+  GravityMultiplier: 1
+  ProjectilePrefab: {fileID: 8758122212596790907, guid: 92c3ff537503e814eb111d674bca27a0,
+    type: 3}
+  TargetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
