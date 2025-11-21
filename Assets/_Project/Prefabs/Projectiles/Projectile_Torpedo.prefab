@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &19499800375693597
+--- !u!1 &7960839798897492006
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,12 +8,12 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4842025841844766150}
-  - component: {fileID: 8229135086047504608}
-  - component: {fileID: 2149828043543317054}
-  - component: {fileID: 8312377023733768191}
-  - component: {fileID: 750154527614807448}
-  - component: {fileID: 3000680474299090642}
+  - component: {fileID: 9189882389254233562}
+  - component: {fileID: 8210474721160629162}
+  - component: {fileID: 4579760887008095589}
+  - component: {fileID: 6947156518377804407}
+  - component: {fileID: 8616904676706553332}
+  - component: {fileID: 300733104038305970}
   m_Layer: 0
   m_Name: Projectile_Torpedo
   m_TagString: Untagged
@@ -21,13 +21,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4842025841844766150
+--- !u!4 &9189882389254233562
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -36,21 +36,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &8229135086047504608
+--- !u!33 &8210474721160629162
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
---- !u!135 &2149828043543317054
+--- !u!135 &4579760887008095589
 SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -65,13 +65,13 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.5
   m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &8312377023733768191
+--- !u!23 &6947156518377804407
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -85,7 +85,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c719e38f25a9480abd2480ab621a2949, type: 2}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -107,13 +107,13 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!54 &750154527614807448
+--- !u!54 &8616904676706553332
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   serializedVersion: 4
   m_Mass: 1
   m_Drag: 0
@@ -134,22 +134,26 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 1
---- !u!114 &3000680474299090642
+--- !u!114 &300733104038305970
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 19499800375693597}
+  m_GameObject: {fileID: 7960839798897492006}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5dd942efeba7e2a43b56781ee574c910, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  BehaviorType: 2
+  BehaviorType: 1
   Speed: 10
   Damage: 80
   GravityMultiplier: 0
+  CruiseHeight: -2
+  TerminalHomingDistance: 30
+  VerticalLaunchHeight: 0
+  TurnRate: 1
   Target: {fileID: 0}
   Owner: {fileID: 0}
   ProjectileTeam: 0

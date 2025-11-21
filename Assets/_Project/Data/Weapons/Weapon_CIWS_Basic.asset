@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: CIWS
   Type: 4
-  Range: 30
+  Range: 40
   Cooldown: 0.05
   Damage: 2
   ProjectileSpeed: 20
   GravityMultiplier: 1
-  ProjectilePrefab: {fileID: 5233822824538118443, guid: 53a5e88dc65ed264398d26f2db714d92,
+  ProjectilePrefab: {fileID: 7656047403295624005, guid: 53a5e88dc65ed264398d26f2db714d92,
     type: 3}
   TargetMask:
     serializedVersion: 2

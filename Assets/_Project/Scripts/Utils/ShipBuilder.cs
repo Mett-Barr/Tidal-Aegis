@@ -255,73 +255,73 @@ namespace NavalCommand.Utils
             GameObject container = new GameObject($"Hull_{weight}");
             
             // Configuration
-            // Unified Gray
             Color hullColor = Color.gray;
-            Color deckColor = new Color(0.3f, 0.3f, 0.3f);    // Dark Deck Gray
+            Color deckColor = new Color(0.3f, 0.3f, 0.3f);
             
-            int mountCount = 0;
+            // Dimensions based on Spec
+            // W (Beam)
+            float W = 4.0f; 
+            // H_hull (Depth below deck)
+            float H_hull = 1.5f;
+            // H_super (Superstructure height reference)
+            float H_super = 2.0f;
 
+            float L = 0f;
+            
+            // Layout Definitions (z_norm: 0=Bow, 1=Stern)
+            System.Collections.Generic.List<float> mountNormPositions = new System.Collections.Generic.List<float>(); 
+            float islandNormPosition = 0.5f;
+            
             switch (weight)
             {
-                case WeightClass.Light:
-                    mountCount = 1;
+                case WeightClass.Light: // S Class
+                    // L:W ~ 3.75 (approx from previous, user didn't specify exact ratio in this prompt but implied similar)
+                    L = W * 3.75f;
+                    
+                    // S: Front Mount -> Island
+                    // Mount: z_norm ~ 0.25
+                    // Island: z_norm ~ 0.60
+                    mountNormPositions.Add(0.25f);
+                    islandNormPosition = 0.60f;
                     break;
-                case WeightClass.Medium:
-                    mountCount = 2;
+                    
+                case WeightClass.Medium: // M Class
+                    // L:W ~ 4.75
+                    L = W * 4.75f;
+                    
+                    // M: Front Mount -> Island -> Rear Mount
+                    // Mount Fwd: z_norm ~ 0.22
+                    // Island: z_norm ~ 0.50
+                    // Mount Aft: z_norm ~ 0.80
+                    mountNormPositions.Add(0.22f);
+                    islandNormPosition = 0.50f;
+                    mountNormPositions.Add(0.80f);
                     break;
-                case WeightClass.Heavy:
-                    mountCount = 3;
+                    
+                case WeightClass.Heavy: // L Class
+                    // L:W ~ 6.0
+                    L = W * 6.0f;
+                    
+                    // L: Front Mount 1 -> Front Mount 2 -> Island -> Rear Mount
+                    // Mount Fwd 1: z_norm ~ 0.18
+                    // Mount Fwd 2: z_norm ~ 0.40
+                    // Island: z_norm ~ 0.63
+                    // Mount Aft: z_norm ~ 0.88
+                    mountNormPositions.Add(0.18f);
+                    mountNormPositions.Add(0.40f);
+                    mountNormPositions.Add(0.88f);
+                    islandNormPosition = 0.63f;
                     break;
             }
 
-            // Dimensions
-            float mountDiameter = 2.0f;
-            float padding = 0.5f;
-            float bridgeLength = 3.0f; // Bridge size
-            float hullWidth = mountDiameter + (padding * 2);
-            float hullHeight = 1.5f;
-
-            // Layout Strategy:
-            // We build from Rear (Z=0) to Front (Z+)
-            // Light (1):  [Rear Pad] [Bridge] [Pad] [Mount] [Pad] [Bow]
-            // Medium (2): [Rear Pad] [Mount] [Pad] [Bridge] [Pad] [Mount] [Pad] [Bow]
-            // Heavy (3):  [Rear Pad] [Mount] [Pad] [Bridge] [Pad] [Mount] [Pad] [Mount] [Pad] [Bow]
-            
-            System.Collections.Generic.List<int> slots = new System.Collections.Generic.List<int>();
-            
-            if (weight == WeightClass.Light)
-            {
-                slots.Add(1); // Bridge Rear
-                slots.Add(0); // Mount Front
-            }
-            else if (weight == WeightClass.Medium)
-            {
-                slots.Add(0); // Mount Rear
-                slots.Add(1); // Bridge Mid
-                slots.Add(0); // Mount Front
-            }
-            else if (weight == WeightClass.Heavy)
-            {
-                slots.Add(0); // Mount Rear
-                slots.Add(1); // Bridge Mid
-                slots.Add(0); // Mount Front
-                slots.Add(0); // Mount Front
-            }
-
-            // Calculate Total Body Length
-            float currentZ = padding; // Start with rear padding
-            float bodyLength = padding; // Initial padding
-
-            foreach (int slot in slots)
-            {
-                if (slot == 0) bodyLength += mountDiameter + padding;
-                else if (slot == 1) bodyLength += bridgeLength + padding;
-            }
-            
-            float bowLength = hullWidth; // Bow length
-            float totalLength = bodyLength + bowLength;
+            // Coordinate Conversion
+            // z_norm = 0 => Z = +L/2 (Bow)
+            // z_norm = 1 => Z = -L/2 (Stern)
+            // Z = (L/2) - (z_norm * L)
+            float GetZ(float z_norm) => (L / 2f) - (z_norm * L);
 
             // 1. Generate Hull Mesh
+            // Hull goes from Y = -H_hull to Y = 0 (Main Deck)
             GameObject hullMeshObj = new GameObject("MainHull_Mesh");
             hullMeshObj.transform.SetParent(container.transform);
             hullMeshObj.transform.localPosition = Vector3.zero;
@@ -331,82 +331,84 @@ namespace NavalCommand.Utils
             mr.material = new Material(Shader.Find("Standard"));
             mr.material.color = hullColor;
 
-            mf.mesh = GeneratePentagonalPrism(hullWidth, hullHeight, bodyLength, bowLength);
+            mf.mesh = GenerateHexagonalHull(W, H_hull, L);
 
             // 2. Place Components
-            currentZ = padding; // Reset to start placing
-            int mountIndex = 1;
+            // All components sit on Main Deck (Y=0)
+            
+            float mountDiameter = W * 0.65f; // Spec: 0.6 ~ 0.7 * B
+            float islandWidth = W * 0.8f;    // Spec: 0.8 * B
+            float islandLength = mountDiameter * 1.0f; // Spec: 0.8 ~ 1.2 * MountDiameter
 
-            foreach (int slot in slots)
+            // Place Mounts
+            int mountIndex = 1;
+            foreach (float normPos in mountNormPositions)
             {
-                if (slot == 0) // Mount
-                {
-                    float centerZ = currentZ + (mountDiameter / 2f);
-                    
-                    GameObject mount = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, 0.1f, mountDiameter), new Vector3(0, hullHeight, centerZ));
-                    mount.name = $"MountPoint_{mountIndex}";
-                    mount.GetComponent<Renderer>().material.color = deckColor;
-                    
-                    currentZ += mountDiameter + padding;
-                    mountIndex++;
-                }
-                else if (slot == 1) // Bridge
-                {
-                    float centerZ = currentZ + (bridgeLength / 2f);
-                    
-                    GameObject bridge = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(hullWidth * 0.8f, 1.2f, bridgeLength), new Vector3(0, hullHeight + 0.6f, centerZ));
-                    bridge.name = "Bridge";
-                    bridge.GetComponent<Renderer>().material.color = hullColor; // Unified Color
-                    
-                    // Bridge Windows/Detail (Optional)
-                    GameObject window = CreatePrimitive(bridge, PrimitiveType.Cube, new Vector3(0.8f, 0.3f, 0.1f), new Vector3(0, 0.2f, 0.5f)); // Front window
-                    window.GetComponent<Renderer>().material.color = Color.black; // Dark windows
-                    
-                    currentZ += bridgeLength + padding;
-                }
+                float z = GetZ(normPos);
+                
+                // Visual Representation of Mount Base
+                // Base sits at Y=0. Height is small (e.g., 0.1 * H_super ~ 0.2m)
+                float baseHeight = 0.2f;
+                float turretHeight = H_super * 0.6f; // Spec: Y ~ 0.6 * H_super
+                
+                // Create Base (The "Hardpoint")
+                GameObject mountBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, baseHeight, mountDiameter), new Vector3(0, baseHeight / 2f, z));
+                mountBase.name = $"MountPoint_{mountIndex}";
+                mountBase.GetComponent<Renderer>().material.color = deckColor;
+                
+                // Note: The actual weapon prefab will be attached to this MountPoint.
+                // The weapon prefab should ideally handle its own turret visual height.
+                // But for the "Empty Hull" visualization, we might want to show a placeholder?
+                // The user asked for "Empty Hull" functionality, which implies just the slots.
+                // So just the base is fine.
+                
+                mountIndex++;
             }
+
+            // Place Island
+            float islandZ = GetZ(islandNormPosition);
+            // Island Base at Y=0. Top at H_super.
+            // Center Y = H_super / 2.
+            GameObject island = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(islandWidth, H_super, islandLength), new Vector3(0, H_super / 2f, islandZ));
+            island.name = "Island";
+            island.GetComponent<Renderer>().material.color = hullColor;
+            
+            // Island Detail (Bridge Window / Mast)
+            // Mast top at H_super (already there). 
+            // Let's add a small mast extending slightly higher to mark it as highest point.
+            GameObject mast = CreatePrimitive(island, PrimitiveType.Cylinder, new Vector3(0.5f, 1.0f, 0.5f), new Vector3(0, 0.5f + 0.2f, 0)); // Relative to island center
+            mast.transform.localPosition = new Vector3(0, 0.5f + 0.2f, 0); // On top of island block
+            mast.GetComponent<Renderer>().material.color = Color.black;
 
             return container;
         }
 
-        private Mesh GeneratePentagonalPrism(float width, float height, float bodyLength, float bowLength)
+        private Mesh GenerateHexagonalHull(float width, float depth, float length)
         {
             Mesh mesh = new Mesh();
-            mesh.name = "PentagonalHull";
+            mesh.name = "HexHull";
 
-            float halfWidth = width / 2f;
+            float halfW = width / 2f;
+            float halfL = length / 2f;
             
-            // Vertices
-            // We need a "House" shape in Plan View (Top-down).
-            // So the footprint is a rectangle + triangle.
-            // Cross-section is a Rectangle.
-            
-            // Bottom Face (y=0)
-            Vector3 b_rl = new Vector3(-halfWidth, 0, 0); // Rear Left
-            Vector3 b_rr = new Vector3(halfWidth, 0, 0);  // Rear Right
-            Vector3 b_fl = new Vector3(-halfWidth, 0, bodyLength); // Front Left (start of bow)
-            Vector3 b_fr = new Vector3(halfWidth, 0, bodyLength);  // Front Right (start of bow)
-            Vector3 b_tip = new Vector3(0, 0, bodyLength + bowLength); // Bow Tip
+            // Y range: -depth to 0
+            float yBottom = -depth;
+            float yTop = 0f;
 
-            // Top Face (y=height)
-            Vector3 t_rl = new Vector3(-halfWidth, height, 0);
-            Vector3 t_rr = new Vector3(halfWidth, height, 0);
-            Vector3 t_fl = new Vector3(-halfWidth, height, bodyLength);
-            Vector3 t_fr = new Vector3(halfWidth, height, bodyLength);
-            Vector3 t_tip = new Vector3(0, height, bodyLength + bowLength);
+            // Chamfer length for Bow and Stern
+            float chamfer = width * 0.8f; 
+            
+            // Profile (Top-down)
+            Vector3[] profile = new Vector3[]
+            {
+                new Vector3(0, 0, halfL),                     // Front Tip
+                new Vector3(halfW, 0, halfL - chamfer),       // Front Right
+                new Vector3(halfW, 0, -(halfL - chamfer)),    // Rear Right
+                new Vector3(0, 0, -halfL),                    // Rear Tip
+                new Vector3(-halfW, 0, -(halfL - chamfer)),   // Rear Left
+                new Vector3(-halfW, 0, halfL - chamfer)       // Front Left
+            };
 
-            // We'll build separate faces for flat shading look (hard edges)
-            // 1. Rear Face (Quad)
-            // 2. Left Side (Quad)
-            // 3. Right Side (Quad)
-            // 4. Top Deck (Pentagon -> 3 tris)
-            // 5. Bottom (Pentagon -> 3 tris)
-            // 6. Bow Left (Quad)
-            // 7. Bow Right (Quad)
-            
-            // Actually, let's just list vertices and build tris.
-            // For flat shading, we need unique vertices for each face.
-            
             System.Collections.Generic.List<Vector3> verts = new System.Collections.Generic.List<Vector3>();
             System.Collections.Generic.List<int> tris = new System.Collections.Generic.List<int>();
 
@@ -427,28 +429,38 @@ namespace NavalCommand.Utils
                 tris.Add(baseIndex); tris.Add(baseIndex + 1); tris.Add(baseIndex + 2);
             }
 
-            // Rear Face
-            AddQuad(b_rr, b_rl, t_rl, t_rr);
+            // Top Deck (Y = 0)
+            Vector3 topCenter = new Vector3(0, yTop, 0);
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 p1 = profile[i]; p1.y = yTop;
+                Vector3 p2 = profile[(i + 1) % 6]; p2.y = yTop;
+                AddTri(topCenter, p1, p2);
+            }
 
-            // Left Side Body
-            AddQuad(b_rl, b_fl, t_fl, t_rl);
+            // Bottom Hull (Y = -depth)
+            // We can taper the bottom slightly for a "hull" look, or keep it prismatic.
+            // Let's keep it prismatic for now as per "Capsule" description, maybe scale it down slightly?
+            // Spec says "Hull Module... single module... length/width/depth".
+            // Let's just make it a prism for simplicity and robustness.
+            Vector3 bottomCenter = new Vector3(0, yBottom, 0);
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 p1 = profile[i]; p1.y = yBottom;
+                Vector3 p2 = profile[(i + 1) % 6]; p2.y = yBottom;
+                AddTri(bottomCenter, p2, p1); // Reverse winding
+            }
 
-            // Right Side Body
-            AddQuad(b_fr, b_rr, t_rr, t_fr);
-
-            // Bow Left
-            AddQuad(b_fl, b_tip, t_tip, t_fl);
-
-            // Bow Right
-            AddQuad(b_tip, b_fr, t_fr, t_tip);
-
-            // Top Deck (Pentagon split into 3 tris: Quad body + Tri bow)
-            AddQuad(t_rl, t_fl, t_fr, t_rr); // Body
-            AddTri(t_fl, t_tip, t_fr);       // Bow
-
-            // Bottom (Pentagon) - Winding reversed
-            AddQuad(b_rl, b_rr, b_fr, b_fl); // Body
-            AddTri(b_fl, b_fr, b_tip);       // Bow
+            // Sides
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3 b1 = profile[i]; b1.y = yBottom;
+                Vector3 b2 = profile[(i + 1) % 6]; b2.y = yBottom;
+                Vector3 t1 = profile[i]; t1.y = yTop;
+                Vector3 t2 = profile[(i + 1) % 6]; t2.y = yTop;
+                
+                AddQuad(b1, t1, t2, b2);
+            }
 
             mesh.SetVertices(verts);
             mesh.SetTriangles(tris, 0);

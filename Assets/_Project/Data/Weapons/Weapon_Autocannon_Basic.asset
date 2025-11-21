@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: Autocannon
   Type: 3
-  Range: 50
+  Range: 60
   Cooldown: 0.2
   Damage: 5
   ProjectileSpeed: 20
   GravityMultiplier: 1
-  ProjectilePrefab: {fileID: 8758122212596790907, guid: 92c3ff537503e814eb111d674bca27a0,
+  ProjectilePrefab: {fileID: 8252718832397926148, guid: 92c3ff537503e814eb111d674bca27a0,
     type: 3}
   TargetMask:
     serializedVersion: 2
