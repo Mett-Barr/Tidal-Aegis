@@ -8,7 +8,7 @@ namespace NavalCommand.Systems
     {
         [Header("Spawn Settings")]
         public GameObject EnemyPrefab; // Optional fallback
-        public float SpawnRadius = 2000f; // Increased from 50
+        public float SpawnRadius = 4000f; // Increased from 50
         public float SpawnInterval = 2f; // Decreased from 5
 
         private float spawnTimer;

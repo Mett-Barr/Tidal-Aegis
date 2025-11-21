@@ -62,8 +62,21 @@ namespace NavalCommand.Entities.Components
 
             if (targets.Count > 0)
             {
-                // Simple logic: pick first target (can be improved to "Nearest")
-                currentTarget = ((MonoBehaviour)targets[0]).transform;
+                // Find nearest target
+                float closestDistSqr = float.MaxValue;
+                Transform closestTarget = null;
+
+                foreach (var target in targets)
+                {
+                    Transform tTrans = ((MonoBehaviour)target).transform;
+                    float distSqr = (tTrans.position - transform.position).sqrMagnitude;
+                    if (distSqr < closestDistSqr)
+                    {
+                        closestDistSqr = distSqr;
+                        closestTarget = tTrans;
+                    }
+                }
+                currentTarget = closestTarget;
             }
             else
             {
@@ -84,12 +97,42 @@ namespace NavalCommand.Entities.Components
             Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
             if (targetRb != null && targetRb.velocity.sqrMagnitude > 0.1f)
             {
-                // Simple first-order intercept
-                float distance = Vector3.Distance(myPos, targetPos);
-                float timeToHit = distance / speed;
+                // Calculate Intercept
+                Vector3 targetVel = targetRb.velocity;
+                Vector3 relativePos = targetPos - myPos;
                 
-                // Predict future position
-                targetPos += targetRb.velocity * timeToHit;
+                // Quadratic equation: (Vt^2 - S^2)t^2 + 2(D.Vt)t + D^2 = 0
+                float a = Vector3.Dot(targetVel, targetVel) - speed * speed;
+                float b = 2f * Vector3.Dot(relativePos, targetVel);
+                float c = Vector3.Dot(relativePos, relativePos);
+
+                float t = -1f;
+
+                // Check for valid solutions
+                if (Mathf.Abs(a) < 0.001f)
+                {
+                    // Linear case (target speed approx projectile speed? rare)
+                    if (Mathf.Abs(b) > 0.001f) t = -c / b;
+                }
+                else
+                {
+                    float discriminant = b * b - 4f * a * c;
+                    if (discriminant >= 0)
+                    {
+                        float sqrtDisc = Mathf.Sqrt(discriminant);
+                        float t1 = (-b - sqrtDisc) / (2f * a);
+                        float t2 = (-b + sqrtDisc) / (2f * a);
+
+                        if (t1 > 0 && t2 > 0) t = Mathf.Min(t1, t2);
+                        else if (t1 > 0) t = t1;
+                        else if (t2 > 0) t = t2;
+                    }
+                }
+
+                if (t > 0)
+                {
+                    targetPos += targetVel * t;
+                }
             }
 
             // 1. Rotate Base (Yaw)
@@ -102,24 +145,10 @@ namespace NavalCommand.Entities.Components
             }
 
             // 2. Calculate Elevation (Pitch)
-            // We need to rotate the FirePoint or the Barrel.
-            // Since we don't have a direct reference to the Barrel, we'll rotate the FirePoint locally.
-            // Note: This assumes FirePoint is a child of the turret.
-            
             float? angle = CalculateLaunchAngle(FirePoint.position, targetPos, speed, gravity);
             
             if (angle.HasValue)
             {
-                // Apply pitch to FirePoint
-                // Negative angle because X-axis rotation up is negative in some conventions, 
-                // but usually positive X is down? Let's test.
-                // Unity: Positive X is "down" (pitch down), Negative X is "up" (pitch up).
-                // Wait, standard: Thumb right (X), fingers curl Y to Z. 
-                // If we look forward (Z), rotating around X:
-                // +X rotates Z towards -Y (Down).
-                // -X rotates Z towards +Y (Up).
-                // So we want -angle.
-                
                 Quaternion targetPitch = Quaternion.Euler(-angle.Value, 0, 0);
                 FirePoint.localRotation = Quaternion.Slerp(FirePoint.localRotation, targetPitch, Time.deltaTime * RotationSpeed);
             }
@@ -138,9 +167,6 @@ namespace NavalCommand.Entities.Components
             float v2 = v * v;
             float v4 = v * v * v * v;
             
-            // Trajectory equation: y = x * tan(theta) - (g * x^2) / (2 * v^2 * cos^2(theta))
-            // Solved for theta: theta = atan( (v^2 +/- sqrt(v^4 - g(g*x^2 + 2*y*v^2))) / (g*x) )
-            
             float root = v4 - g * (g * x * x + 2 * y * v2);
             
             if (root < 0)
@@ -149,10 +175,6 @@ namespace NavalCommand.Entities.Components
                 return null;
             }
 
-            // We want the lower angle (direct fire) usually, or high arc?
-            // Let's use the lower angle for naval guns (direct).
-            // theta = atan( (v^2 - sqrt(...)) / (g*x) )
-            
             float angleRad = Mathf.Atan((v2 - Mathf.Sqrt(root)) / (g * x));
             return angleRad * Mathf.Rad2Deg;
         }
