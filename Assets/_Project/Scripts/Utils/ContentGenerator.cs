@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.UI;
 using NavalCommand.Data;
 using NavalCommand.Entities.Projectiles;
 using NavalCommand.Entities.Components;
@@ -18,6 +19,7 @@ namespace NavalCommand.Utils
             GenerateProjectiles();
             GenerateWeaponStats();
             GenerateShips();
+            SetupSpawningSystem();
             
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -83,7 +85,7 @@ namespace NavalCommand.Utils
 
             // Physics
             var rb = go.AddComponent<Rigidbody>();
-            rb.useGravity = (type == ProjectileType.Ballistic);
+            rb.useGravity = (type == ProjectileType.Ballistic || type == ProjectileType.Straight);
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
 
             // Behavior
@@ -91,7 +93,7 @@ namespace NavalCommand.Utils
             proj.BehaviorType = type;
             proj.Speed = speed;
             proj.Damage = damage;
-            proj.GravityMultiplier = (type == ProjectileType.Ballistic) ? 1f : 0f;
+            proj.GravityMultiplier = (type == ProjectileType.Ballistic || type == ProjectileType.Straight) ? 1f : 0f;
             
             // Advanced Settings
             proj.CruiseHeight = cruiseHeight;
@@ -164,6 +166,7 @@ namespace NavalCommand.Utils
                 CreateModularShip(builder, "Ship_Light_Torpedo", "Weapon_Torpedo_Basic", WeaponType.Torpedo);
                 CreateModularShip(builder, "Ship_Light_Autocannon", "Weapon_Autocannon_Basic", WeaponType.Autocannon);
                 CreateModularShip(builder, "Ship_Light_CIWS", "Weapon_CIWS_Basic", WeaponType.CIWS);
+                CreateKamikazeShip(builder);
             }
             finally
             {
@@ -236,6 +239,80 @@ namespace NavalCommand.Utils
             DestroyImmediate(shipRoot);
         }
 
+        private static void CreateKamikazeShip(ShipBuilder builder)
+        {
+            string name = "Ship_Kamikaze";
+            string path = $"Assets/_Project/Prefabs/Enemies/{name}.prefab";
+            
+            // Always recreate
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) AssetDatabase.DeleteAsset(path);
+
+            // 1. Create Hull (Light)
+            GameObject shipRoot = builder.CreateHullModule(WeightClass.Light);
+            shipRoot.name = name;
+            shipRoot.transform.localPosition = Vector3.zero;
+            shipRoot.transform.localRotation = Quaternion.identity;
+
+            // 2. Add Components
+            var rb = shipRoot.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.drag = 1f;
+            rb.angularDrag = 1f;
+            rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+
+            var unit = shipRoot.AddComponent<KamikazeController>();
+            unit.UnitTeam = NavalCommand.Core.Team.Enemy;
+            unit.MaxHP = 30f;
+
+            var col = shipRoot.AddComponent<BoxCollider>();
+            col.size = new Vector3(3f, 2f, 8f);
+            col.center = new Vector3(0, 1f, 0);
+
+            // 3. Save Prefab
+            PrefabUtility.SaveAsPrefabAsset(shipRoot, path);
+            DestroyImmediate(shipRoot);
+        }
+
+        private static void SetupSpawningSystem()
+        {
+            NavalCommand.Systems.SpawningSystem spawner = Object.FindObjectOfType<NavalCommand.Systems.SpawningSystem>();
+            if (spawner == null)
+            {
+                Debug.LogWarning("SpawningSystem not found in scene. Skipping setup.");
+                return;
+            }
+
+            string[] prefabNames = new string[]
+            {
+                "Ship_Kamikaze",
+                "Ship_Light_FlagshipGun",
+                "Ship_Light_Missile",
+                "Ship_Light_Torpedo",
+                "Ship_Light_Autocannon",
+                "Ship_Light_CIWS"
+            };
+
+            System.Collections.Generic.List<GameObject> prefabs = new System.Collections.Generic.List<GameObject>();
+            foreach (string name in prefabNames)
+            {
+                string path = $"Assets/_Project/Prefabs/Enemies/{name}.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab != null)
+                {
+                    prefabs.Add(prefab);
+                }
+                else
+                {
+                    Debug.LogError($"Could not load enemy prefab at {path}");
+                }
+            }
+
+            spawner.EnemyPrefabs = prefabs.ToArray();
+            EditorUtility.SetDirty(spawner);
+            Debug.Log($"SpawningSystem configured with {prefabs.Count} enemy types.");
+        }
+
         [MenuItem("NavalCommand/Generate Empty Hulls")]
         public static void GenerateEmptyHulls()
         {
@@ -293,6 +370,83 @@ namespace NavalCommand.Utils
             // 3. Save Prefab
             PrefabUtility.SaveAsPrefabAsset(shipRoot, path);
             DestroyImmediate(shipRoot);
+        }
+        [MenuItem("NavalCommand/Generate HUD")]
+        public static void GenerateHUD()
+        {
+            // 1. Create Canvas
+            GameObject canvasObj = GameObject.Find("DashboardCanvas");
+            if (canvasObj == null)
+            {
+                canvasObj = new GameObject("DashboardCanvas");
+                Canvas canvas = canvasObj.AddComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvasObj.AddComponent<CanvasScaler>();
+                canvasObj.AddComponent<GraphicRaycaster>();
+            }
+
+            // 2. Create Dashboard Panel (Bottom Left)
+            GameObject panelObj = GameObject.Find("DashboardPanel");
+            if (panelObj == null)
+            {
+                panelObj = new GameObject("DashboardPanel");
+                panelObj.transform.SetParent(canvasObj.transform, false);
+                
+                RectTransform rect = panelObj.AddComponent<RectTransform>();
+                rect.anchorMin = Vector2.zero; // Bottom Left
+                rect.anchorMax = Vector2.zero;
+                rect.pivot = Vector2.zero;
+                rect.anchoredPosition = new Vector2(20, 20);
+                rect.sizeDelta = new Vector2(300, 150);
+
+                Image bg = panelObj.AddComponent<Image>();
+                bg.color = new Color(0, 0, 0, 0.5f); // Semi-transparent black
+            }
+
+            // 3. Add DashboardUI Script
+            NavalCommand.UI.DashboardUI ui = panelObj.GetComponent<NavalCommand.UI.DashboardUI>();
+            if (ui == null) ui = panelObj.AddComponent<NavalCommand.UI.DashboardUI>();
+
+            // 4. Create Text Elements
+            ui.ThrottleText = CreateTextElement(panelObj, "ThrottleText", "THROTTLE: STOP", new Vector2(10, 110));
+            ui.RudderText = CreateTextElement(panelObj, "RudderText", "RUDDER: CENTER", new Vector2(10, 70));
+            ui.SpeedText = CreateTextElement(panelObj, "SpeedText", "0.0 kts", new Vector2(10, 30));
+
+            Debug.Log("HUD Generated Successfully!");
+        }
+
+        private static Text CreateTextElement(GameObject parent, string name, string defaultText, Vector2 position)
+        {
+            Transform existing = parent.transform.Find(name);
+            GameObject textObj;
+            
+            if (existing != null)
+            {
+                textObj = existing.gameObject;
+            }
+            else
+            {
+                textObj = new GameObject(name);
+                textObj.transform.SetParent(parent.transform, false);
+            }
+
+            Text textComp = textObj.GetComponent<Text>();
+            if (textComp == null) textComp = textObj.AddComponent<Text>();
+
+            textComp.text = defaultText;
+            textComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            textComp.fontSize = 24;
+            textComp.color = Color.white;
+            textComp.alignment = TextAnchor.MiddleLeft;
+
+            RectTransform rect = textObj.GetComponent<RectTransform>();
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.zero;
+            rect.pivot = Vector2.zero;
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(280, 30);
+
+            return textComp;
         }
     }
 }

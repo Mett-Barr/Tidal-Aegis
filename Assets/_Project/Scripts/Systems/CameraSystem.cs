@@ -119,14 +119,12 @@ namespace NavalCommand.Systems
             float height = Mathf.Sin(radianAngle) * Distance;
             float backDist = Mathf.Cos(radianAngle) * Distance;
 
+            // We want the camera BEHIND the target.
+            // If Target.forward is (0,0,1), we want offset (0, height, -backDist).
+            Vector3 offset = new Vector3(0, height, -backDist); 
+            
+            // Rotate this offset by the target's Y rotation to stay relative to the ship's facing
             Quaternion currentRotation = Quaternion.Euler(0, Target.eulerAngles.y, 0);
-            
-            // User reported camera was "in front", so we invert the Z offset.
-            // Previously was -backDist. Now trying +backDist to flip it to the other side.
-            // If the ship's model is standard, -backDist should be behind. 
-            // But if it's appearing in front, we flip it.
-            Vector3 offset = new Vector3(0, height, backDist); 
-            
             Vector3 rotatedOffset = currentRotation * offset;
             
             return Target.position + rotatedOffset;

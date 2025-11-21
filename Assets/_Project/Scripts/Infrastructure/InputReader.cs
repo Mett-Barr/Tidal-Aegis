@@ -34,12 +34,23 @@ namespace NavalCommand.Infrastructure
             HandleSystem();
         }
 
+        public event Action OnThrottleUp;
+        public event Action OnThrottleDown;
+        public event Action OnRudderLeft;
+        public event Action OnRudderRight;
+
         private void HandleMovement()
         {
-            // Legacy Input for now, can be swapped for New Input System here
+            // Continuous (Legacy)
             float x = Input.GetAxisRaw("Horizontal");
             float y = Input.GetAxisRaw("Vertical");
             MoveDirection = new Vector2(x, y).normalized;
+
+            // Discrete Events (WoWS Style)
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) OnThrottleUp?.Invoke();
+            if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) OnThrottleDown?.Invoke();
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) OnRudderLeft?.Invoke();
+            if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) OnRudderRight?.Invoke();
         }
 
         private void HandleCombat()

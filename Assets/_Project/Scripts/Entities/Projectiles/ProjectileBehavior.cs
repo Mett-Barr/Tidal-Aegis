@@ -77,8 +77,18 @@ namespace NavalCommand.Entities.Projectiles
             }
             else if (BehaviorType == ProjectileType.Straight)
             {
-                rb.velocity = transform.forward * Speed;
-                rb.useGravity = false;
+                // Straight projectiles are now Ballistic but usually high speed
+                // We allow gravity to affect them
+                if (rb != null && rb.useGravity)
+                {
+                    rb.AddForce(Physics.gravity * (GravityMultiplier - 1f), ForceMode.Acceleration);
+                }
+                
+                // Align with velocity
+                if (rb.velocity.sqrMagnitude > 0.1f)
+                {
+                    transform.rotation = Quaternion.LookRotation(rb.velocity);
+                }
             }
         }
 
@@ -230,6 +240,7 @@ namespace NavalCommand.Entities.Projectiles
                 // Initial velocity
                 if (BehaviorType == ProjectileType.Ballistic || BehaviorType == ProjectileType.Straight)
                 {
+                    rb.useGravity = true;
                     rb.velocity = transform.forward * Speed;
                 }
                 else if (BehaviorType == ProjectileType.Homing)

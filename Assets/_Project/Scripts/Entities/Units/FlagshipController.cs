@@ -5,9 +5,24 @@ namespace NavalCommand.Entities.Units
 {
     public class FlagshipController : BaseUnit
     {
+        public enum ThrottleState { FullReverse = -1, Stop = 0, Slow = 1, Half = 2, Full = 3 }
+        public enum RudderState { HardLeft = -2, Left = -1, Center = 0, Right = 1, HardRight = 2 }
+
         [Header("Movement Settings")]
-        public float MoveSpeed = 5f;
-        public float TurnSpeed = 2f;
+        public float MaxSpeed = 15f; // Knots approx
+        public float Acceleration = 2f; // How fast we reach target speed
+        public float MaxTurnRate = 30f; // Degrees per second
+        public float RudderSensitivity = 20f; // How fast rudder changes effect
+
+        [Header("Current Status")]
+        public ThrottleState CurrentThrottle = ThrottleState.Stop;
+        public RudderState CurrentRudder = RudderState.Center;
+        public float CurrentSpeedKnots => currentSpeed;
+
+        private float currentSpeed = 0f;
+        private float currentTurnRate = 0f;
+        private float targetSpeed = 0f;
+        private float targetTurnRate = 0f;
 
         protected override void Awake()
         {
@@ -21,9 +36,73 @@ namespace NavalCommand.Entities.Units
             {
                 Core.GameManager.Instance.PlayerFlagship = this;
             }
-            else
+            
+            // Subscribe to Input Events
+            if (InputReader.Instance != null)
             {
-                Debug.LogError("FlagshipController: GameManager Instance is NULL! Cannot register.");
+                InputReader.Instance.OnThrottleUp += IncreaseThrottle;
+                InputReader.Instance.OnThrottleDown += DecreaseThrottle;
+                InputReader.Instance.OnRudderLeft += TurnLeft;
+                InputReader.Instance.OnRudderRight += TurnRight;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (InputReader.Instance != null)
+            {
+                InputReader.Instance.OnThrottleUp -= IncreaseThrottle;
+                InputReader.Instance.OnThrottleDown -= DecreaseThrottle;
+                InputReader.Instance.OnRudderLeft -= TurnLeft;
+                InputReader.Instance.OnRudderRight -= TurnRight;
+            }
+        }
+
+        private void IncreaseThrottle()
+        {
+            if (CurrentThrottle < ThrottleState.Full) CurrentThrottle++;
+            UpdateTargetSpeed();
+        }
+
+        private void DecreaseThrottle()
+        {
+            if (CurrentThrottle > ThrottleState.FullReverse) CurrentThrottle--;
+            UpdateTargetSpeed();
+        }
+
+        private void TurnLeft()
+        {
+            if (CurrentRudder > RudderState.HardLeft) CurrentRudder--;
+            UpdateTargetTurnRate();
+        }
+
+        private void TurnRight()
+        {
+            if (CurrentRudder < RudderState.HardRight) CurrentRudder++;
+            UpdateTargetTurnRate();
+        }
+
+        private void UpdateTargetSpeed()
+        {
+            switch (CurrentThrottle)
+            {
+                case ThrottleState.FullReverse: targetSpeed = -MaxSpeed * 0.5f; break;
+                case ThrottleState.Stop: targetSpeed = 0f; break;
+                case ThrottleState.Slow: targetSpeed = MaxSpeed * 0.33f; break;
+                case ThrottleState.Half: targetSpeed = MaxSpeed * 0.66f; break;
+                case ThrottleState.Full: targetSpeed = MaxSpeed; break;
+            }
+        }
+
+        private void UpdateTargetTurnRate()
+        {
+            switch (CurrentRudder)
+            {
+                case RudderState.HardLeft: targetTurnRate = -MaxTurnRate; break;
+                case RudderState.Left: targetTurnRate = -MaxTurnRate * 0.5f; break;
+                case RudderState.Center: targetTurnRate = 0f; break;
+                case RudderState.Right: targetTurnRate = MaxTurnRate * 0.5f; break;
+                case RudderState.HardRight: targetTurnRate = MaxTurnRate; break;
             }
         }
 
@@ -34,19 +113,19 @@ namespace NavalCommand.Entities.Units
 
         public override void Move()
         {
-            if (InputReader.Instance == null) return;
+            // Smoothly interpolate towards target values
+            currentSpeed = Mathf.MoveTowards(currentSpeed, targetSpeed, Acceleration * Time.fixedDeltaTime);
+            currentTurnRate = Mathf.MoveTowards(currentTurnRate, targetTurnRate, RudderSensitivity * Time.fixedDeltaTime);
 
-            Vector2 input = InputReader.Instance.MoveDirection;
-            Vector3 movement = new Vector3(input.x, 0, input.y) * MoveSpeed * Time.fixedDeltaTime;
-            
-            // Physics-based movement
-            Rb.MovePosition(Rb.position + movement);
+            // Apply Physics
+            // Rotation
+            float turnAmount = currentTurnRate * Time.fixedDeltaTime;
+            Quaternion turnRotation = Quaternion.Euler(0, turnAmount, 0);
+            Rb.MoveRotation(Rb.rotation * turnRotation);
 
-            if (movement != Vector3.zero)
-            {
-                Quaternion toRotation = Quaternion.LookRotation(movement, Vector3.up);
-                Rb.rotation = Quaternion.RotateTowards(Rb.rotation, toRotation, TurnSpeed * Time.fixedDeltaTime);
-            }
+            // Position
+            Vector3 forwardVelocity = transform.forward * currentSpeed;
+            Rb.MovePosition(Rb.position + forwardVelocity * Time.fixedDeltaTime);
         }
 
         protected override void Die()

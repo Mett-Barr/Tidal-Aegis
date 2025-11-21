@@ -19,7 +19,7 @@ MonoBehaviour:
   Damage: 5
   ProjectileSpeed: 20
   GravityMultiplier: 1
-  ProjectilePrefab: {fileID: 8252718832397926148, guid: 92c3ff537503e814eb111d674bca27a0,
+  ProjectilePrefab: {fileID: 7857851455725635618, guid: 92c3ff537503e814eb111d674bca27a0,
     type: 3}
   TargetMask:
     serializedVersion: 2
