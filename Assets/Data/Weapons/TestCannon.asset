@@ -14,10 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: 
   Type: 0
-  Range: 50
+  Range: 300
   Cooldown: 0.5
   Damage: 10
-  ProjectileSpeed: 40
+  ProjectileSpeed: 70
+  GravityMultiplier: 2
   ProjectilePrefab: {fileID: 5855608116090606660, guid: e87c4d42475ede643922d7b4c752aad9,
     type: 3}
   TargetMask:

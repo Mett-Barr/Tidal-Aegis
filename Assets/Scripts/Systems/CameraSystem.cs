@@ -41,7 +41,7 @@ namespace NavalCommand.Systems
 
         [Header("Zoom Settings")]
         public float MinDistance = 20f;
-        public float MaxDistance = 100f;
+        public float MaxDistance = 300f;
         public float ZoomSensitivity = 5f;
 
         private void LateUpdate()

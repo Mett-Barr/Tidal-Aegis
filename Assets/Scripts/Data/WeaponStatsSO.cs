@@ -24,6 +24,7 @@ namespace NavalCommand.Data
         public float Cooldown;
         public float Damage;
         public float ProjectileSpeed = 20f;
+        public float GravityMultiplier = 1f;
 
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;

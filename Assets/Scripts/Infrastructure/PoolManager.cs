@@ -48,7 +48,15 @@ namespace NavalCommand.Infrastructure
             {
                 objectToSpawn = Instantiate(prefab);
                 // Map the new object instance ID to the prefab ID so we know where to return it
-                spawnedObjectsMap[objectToSpawn.GetInstanceID()] = poolKey;
+                int instanceId = objectToSpawn.GetInstanceID();
+                if (!spawnedObjectsMap.ContainsKey(instanceId))
+                {
+                    spawnedObjectsMap.Add(instanceId, poolKey);
+                }
+                else
+                {
+                    spawnedObjectsMap[instanceId] = poolKey;
+                }
             }
 
             objectToSpawn.transform.position = position;

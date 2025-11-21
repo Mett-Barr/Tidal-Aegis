@@ -1,5 +1,6 @@
 using UnityEngine;
 using NavalCommand.Core;
+using NavalCommand.Infrastructure;
 
 namespace NavalCommand.Systems
 {
@@ -38,7 +39,14 @@ namespace NavalCommand.Systems
                 spawnPos += GameManager.Instance.PlayerFlagship.transform.position;
             }
 
-            Instantiate(EnemyPrefab, spawnPos, Quaternion.identity);
+            if (PoolManager.Instance != null)
+            {
+                PoolManager.Instance.Spawn(EnemyPrefab, spawnPos, Quaternion.identity);
+            }
+            else
+            {
+                Instantiate(EnemyPrefab, spawnPos, Quaternion.identity);
+            }
         }
     }
 }
