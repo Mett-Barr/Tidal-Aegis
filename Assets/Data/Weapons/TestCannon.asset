@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: 
   Type: 0
-  Range: 300
+  Range: 1500
   Cooldown: 0.5
   Damage: 10
   ProjectileSpeed: 70
