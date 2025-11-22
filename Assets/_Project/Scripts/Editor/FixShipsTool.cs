@@ -10,6 +10,10 @@ namespace NavalCommand.Editor
         [MenuItem("Tools/Fix Invisible Ships")]
         public static void FixShips()
         {
+            // 0. REGENERATE ALL CONTENT (Fixes Pink Hulls for everyone)
+            Debug.Log("[FixShipsTool] Regenerating ALL ship assets to fix materials...");
+            ContentGenerator.GenerateContent();
+
             string prefabPath = "Assets/_Project/Prefabs/Enemies/Ship_SuperFlagship.prefab";
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
 
