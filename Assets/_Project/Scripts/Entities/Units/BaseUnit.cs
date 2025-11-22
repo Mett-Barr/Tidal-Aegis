@@ -23,24 +23,39 @@ namespace NavalCommand.Entities.Units
         protected virtual void OnEnable()
         {
             CurrentHP = MaxHP;
+            isRegistered = false;
             if (SpatialGridSystem.Instance != null)
             {
                 SpatialGridSystem.Instance.Register(this, transform.position);
+                isRegistered = true;
             }
         }
 
         protected virtual void OnDisable()
         {
-            if (SpatialGridSystem.Instance != null)
+            if (SpatialGridSystem.Instance != null && isRegistered)
             {
                 SpatialGridSystem.Instance.Unregister(this);
             }
+            isRegistered = false;
         }
+
+        private bool isRegistered = false;
 
         protected virtual void Update()
         {
+            // Retry registration if failed in OnEnable (e.g. GridSystem wasn't ready)
+            if (!isRegistered)
+            {
+                if (SpatialGridSystem.Instance != null)
+                {
+                    SpatialGridSystem.Instance.Register(this, transform.position);
+                    isRegistered = true;
+                }
+            }
+
             // Update grid position if moving
-            if (SpatialGridSystem.Instance != null && Rb.velocity.sqrMagnitude > 0.1f)
+            if (isRegistered && SpatialGridSystem.Instance != null && Rb.velocity.sqrMagnitude > 0.1f)
             {
                 SpatialGridSystem.Instance.UpdatePosition(this, transform.position);
             }
@@ -63,6 +78,11 @@ namespace NavalCommand.Entities.Units
         public Team GetTeam()
         {
             return UnitTeam;
+        }
+
+        public virtual UnitType GetUnitType()
+        {
+            return UnitType.Surface;
         }
 
         protected virtual void Die()

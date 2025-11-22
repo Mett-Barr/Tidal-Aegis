@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEditor;
 using UnityEngine.UI;
 using NavalCommand.Data;
+using NavalCommand.Core; // Added for BallisticsConfig
 using NavalCommand.Entities.Projectiles;
 using NavalCommand.Entities.Components;
 using NavalCommand.Entities.Units;
@@ -44,21 +45,26 @@ namespace NavalCommand.Utils
         private static void GenerateProjectiles()
         {
             // Flagship Gun: Ballistic, Standard
-            CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, 30f, 20f);
+            CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, 
+                BallisticsConfig.GetSpeed(WeaponType.FlagshipGun), 20f);
             
             // Missile: VLS -> Cruise (15m) -> Terminal
-            CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, 15f, 50f, 
-                cruiseHeight: 15f, terminalDist: 50f, vlsHeight: 20f, turnRate: 2f);
+            CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, 
+                BallisticsConfig.GetSpeed(WeaponType.Missile), 50f, 
+                cruiseHeight: 15f, terminalDist: 50f, vlsHeight: 20f, turnRate: 15f);
             
             // Torpedo: Underwater (-2m) -> Homing
-            CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, 10f, 80f,
+            CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, 
+                BallisticsConfig.GetSpeed(WeaponType.Torpedo), 80f,
                 cruiseHeight: -2f, terminalDist: 30f, vlsHeight: 0f, turnRate: 1f);
             
             // Autocannon: Fast, Straight
-            CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, 60f, 5f);
+            CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, 
+                BallisticsConfig.GetSpeed(WeaponType.Autocannon), 5f);
             
             // CIWS: Very Fast, Straight
-            CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, 80f, 2f);
+            CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, 
+                BallisticsConfig.GetSpeed(WeaponType.CIWS), 2f);
         }
 
         private static void CreateProjectile(string name, Color color, ProjectileType type, float speed, float damage,
@@ -112,22 +118,27 @@ namespace NavalCommand.Utils
         private static void GenerateWeaponStats()
         {
             // Flagship Gun: Reliable, medium range
-            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, 120f, 3f, 30f, "Projectile_FlagshipGun");
+            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, BallisticsConfig.GetRange(WeaponType.FlagshipGun), 3f, 30f, 
+                BallisticsConfig.GetSpeed(WeaponType.FlagshipGun), "Projectile_FlagshipGun");
             
             // Missile: Long range, slow reload, high damage
-            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, 300f, 10f, 60f, "Projectile_Missile");
+            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, BallisticsConfig.GetRange(WeaponType.Missile), 10f, 60f, 
+                BallisticsConfig.GetSpeed(WeaponType.Missile), "Projectile_Missile");
             
             // Torpedo: Medium range, very slow reload, massive damage
-            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, 150f, 12f, 100f, "Projectile_Torpedo");
+            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, BallisticsConfig.GetRange(WeaponType.Torpedo), 12f, 100f, 
+                BallisticsConfig.GetSpeed(WeaponType.Torpedo), "Projectile_Torpedo");
             
             // Autocannon: Short range, rapid fire, suppression
-            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, 60f, 0.2f, 5f, "Projectile_Autocannon");
+            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, BallisticsConfig.GetRange(WeaponType.Autocannon), 0.2f, 5f, 
+                BallisticsConfig.GetSpeed(WeaponType.Autocannon), "Projectile_Autocannon");
             
             // CIWS: Very short range, extreme fire rate, defense
-            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, 40f, 0.05f, 2f, "Projectile_CIWS");
+            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, BallisticsConfig.GetRange(WeaponType.CIWS), 0.05f, 2f, 
+                BallisticsConfig.GetSpeed(WeaponType.CIWS), "Projectile_CIWS");
         }
 
-        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, string projectileName)
+        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName)
         {
             string path = $"Assets/_Project/Data/Weapons/{name}.asset";
             WeaponStatsSO so = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(path);
@@ -143,6 +154,8 @@ namespace NavalCommand.Utils
             so.Range = range;
             so.Cooldown = cooldown;
             so.Damage = damage;
+            so.ProjectileSpeed = speed;
+            so.GravityMultiplier = BallisticsConfig.GetGravityMultiplier(type);
             
             string projPath = $"Assets/_Project/Prefabs/Projectiles/{projectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
@@ -167,6 +180,7 @@ namespace NavalCommand.Utils
                 CreateModularShip(builder, "Ship_Light_Autocannon", "Weapon_Autocannon_Basic", WeaponType.Autocannon);
                 CreateModularShip(builder, "Ship_Light_CIWS", "Weapon_CIWS_Basic", WeaponType.CIWS);
                 CreateKamikazeShip(builder);
+                CreateSuperFlagship(builder);
             }
             finally
             {
@@ -207,7 +221,8 @@ namespace NavalCommand.Utils
                 {
                     firePoint = new GameObject("FirePoint").transform;
                     firePoint.SetParent(weaponVisual.transform);
-                    firePoint.localPosition = new Vector3(0, 1.5f, 1.5f);
+                    // Move it further forward (z=4) and higher (y=2) to clear the hull collider
+                    firePoint.localPosition = new Vector3(0, 2f, 4f); 
                 }
 
                 WeaponController wc = weaponVisual.AddComponent<WeaponController>();
@@ -229,6 +244,7 @@ namespace NavalCommand.Utils
             rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
             var unit = shipRoot.AddComponent<EnemyUnit>();
+            unit.UnitTeam = NavalCommand.Core.Team.Enemy;
 
             var col = shipRoot.AddComponent<BoxCollider>();
             col.size = new Vector3(3f, 2f, 8f); // Approx size for Light Hull
@@ -274,6 +290,110 @@ namespace NavalCommand.Utils
             DestroyImmediate(shipRoot);
         }
 
+        private static void CreateSuperFlagship(ShipBuilder builder)
+        {
+            string name = "Ship_SuperFlagship";
+            string path = $"Assets/_Project/Prefabs/Enemies/{name}.prefab";
+            
+            // Always recreate
+            GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            if (existing != null) AssetDatabase.DeleteAsset(path);
+
+            // 1. Create Hull (SuperHeavy)
+            GameObject shipRoot = builder.CreateHullModule(WeightClass.SuperHeavy);
+            shipRoot.name = name;
+            shipRoot.transform.localPosition = Vector3.zero;
+            shipRoot.transform.localRotation = Quaternion.identity;
+
+            // 2. Attach Weapons
+            // Mounts 1-3: Main Guns (FlagshipGun)
+            AttachWeapon(builder, shipRoot, 1, "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun);
+            AttachWeapon(builder, shipRoot, 2, "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun);
+            AttachWeapon(builder, shipRoot, 3, "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun);
+
+            // Mounts 4-5: Secondary Guns (FlagshipGun)
+            AttachWeapon(builder, shipRoot, 4, "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun);
+            AttachWeapon(builder, shipRoot, 5, "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun);
+
+            // Mounts 6-7: Missiles
+            AttachWeapon(builder, shipRoot, 6, "Weapon_Missile_Basic", WeaponType.Missile);
+            AttachWeapon(builder, shipRoot, 7, "Weapon_Missile_Basic", WeaponType.Missile);
+
+            // Mounts 8-9: Torpedoes
+            AttachWeapon(builder, shipRoot, 8, "Weapon_Torpedo_Basic", WeaponType.Torpedo);
+            AttachWeapon(builder, shipRoot, 9, "Weapon_Torpedo_Basic", WeaponType.Torpedo);
+
+            // Mounts 10-11: Autocannons
+            AttachWeapon(builder, shipRoot, 10, "Weapon_Autocannon_Basic", WeaponType.Autocannon);
+            AttachWeapon(builder, shipRoot, 11, "Weapon_Autocannon_Basic", WeaponType.Autocannon);
+
+            // Mounts 12-13: CIWS
+            AttachWeapon(builder, shipRoot, 12, "Weapon_CIWS_Basic", WeaponType.CIWS);
+            AttachWeapon(builder, shipRoot, 13, "Weapon_CIWS_Basic", WeaponType.CIWS);
+
+            // 3. Add Components
+            var rb = shipRoot.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.drag = 1f;
+            rb.angularDrag = 1f;
+            rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+
+            // Flagship Controller (Player)
+            var unit = shipRoot.AddComponent<FlagshipController>();
+            unit.MaxHP = 50000f; // Massive HP for Super Flagship
+            // Note: FlagshipController usually handles input. 
+            // If this is an enemy Super Flagship, we might need a different controller.
+            // But the user asked for "Super Flagship", implying it might be for the player or a boss.
+            // Given "SpawnEnemy" context, it might be an enemy.
+            // But "Flagship" usually implies Player.
+            // The prompt says "Implement a massive 'Super Flagship'... Update Scene: Find GameManager... ensure player uses this new prefab".
+            // So it IS for the player.
+            // FlagshipController is correct.
+
+            var col = shipRoot.AddComponent<BoxCollider>();
+            col.size = new Vector3(10f, 5f, 80f); // Approx size for SuperHeavy
+            col.center = new Vector3(0, 2.5f, 0);
+
+            // 4. Save Prefab
+            PrefabUtility.SaveAsPrefabAsset(shipRoot, path);
+            DestroyImmediate(shipRoot);
+        }
+
+        private static void AttachWeapon(ShipBuilder builder, GameObject shipRoot, int mountIndex, string weaponStatsName, WeaponType type)
+        {
+            Transform mountPoint = shipRoot.transform.Find($"MountPoint_{mountIndex}");
+            if (mountPoint != null)
+            {
+                GameObject weaponVisual = builder.CreateWeaponModule(type);
+                weaponVisual.transform.SetParent(mountPoint);
+                weaponVisual.transform.localPosition = Vector3.zero;
+                weaponVisual.transform.localRotation = Quaternion.identity;
+
+                Transform firePoint = weaponVisual.transform.Find("FirePoint");
+                if (firePoint == null)
+                {
+                    firePoint = new GameObject("FirePoint").transform;
+                    firePoint.SetParent(weaponVisual.transform);
+                    firePoint.localPosition = new Vector3(0, 1.5f, 1.5f);
+                }
+
+                WeaponController wc = weaponVisual.AddComponent<WeaponController>();
+                string statsPath = $"Assets/_Project/Data/Weapons/{weaponStatsName}.asset";
+                wc.WeaponStats = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(statsPath);
+                wc.FirePoint = firePoint;
+                // Default to Player, but if spawned as enemy, this needs to change.
+                // However, this prefab is used for BOTH Player and Enemy spawning.
+                // The correct way is to set the Team when spawning or in the Controller.
+                // But WeaponController reads OwnerTeam.
+                // Let's set it to Player by default here, but ensure it gets updated by the Unit Controller.
+                wc.OwnerTeam = NavalCommand.Core.Team.Player; 
+            }
+            else
+            {
+                Debug.LogWarning($"MountPoint_{mountIndex} not found on Super Flagship");
+            }
+        }
+
         private static void SetupSpawningSystem()
         {
             NavalCommand.Systems.SpawningSystem spawner = Object.FindObjectOfType<NavalCommand.Systems.SpawningSystem>();
@@ -291,6 +411,7 @@ namespace NavalCommand.Utils
                 "Ship_Light_Torpedo",
                 "Ship_Light_Autocannon",
                 "Ship_Light_CIWS"
+                // "Ship_SuperFlagship" // Removed as per request: Do not spawn as enemy
             };
 
             System.Collections.Generic.List<GameObject> prefabs = new System.Collections.Generic.List<GameObject>();

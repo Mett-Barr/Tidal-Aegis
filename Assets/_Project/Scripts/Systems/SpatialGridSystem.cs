@@ -1,15 +1,62 @@
 using System.Collections.Generic;
 using UnityEngine;
 using NavalCommand.Core;
+using NavalCommand.Data; // Added for TargetCapability
 
 namespace NavalCommand.Systems
 {
     public class SpatialGridSystem : MonoBehaviour
     {
+        // ... (Existing code)
+
+        public List<IDamageable> GetTargetsInRange(Vector3 origin, float range, Team searchTeam, TargetCapability targetMask = TargetCapability.Surface)
+        {
+            List<IDamageable> results = new List<IDamageable>();
+            Vector2Int centerCell = GetCellPos(origin);
+            int cellRange = Mathf.CeilToInt(range / CellSize);
+
+            // Search neighboring cells
+            for (int x = -cellRange; x <= cellRange; x++)
+            {
+                for (int y = -cellRange; y <= cellRange; y++)
+                {
+                    Vector2Int checkCell = centerCell + new Vector2Int(x, y);
+                    
+                    if (grid.TryGetValue(checkCell, out List<IDamageable> cellContent))
+                    {
+                        foreach (var target in cellContent)
+                        {
+                            // Basic filtering
+                            if (target.GetTeam() == searchTeam && !target.IsDead())
+                            {
+                                // Check Target Capability
+                                UnitType targetType = target.GetUnitType();
+                                bool isTargetable = false;
+
+                                if (targetType == UnitType.Surface && (targetMask & TargetCapability.Surface) != 0) isTargetable = true;
+                                if (targetType == UnitType.Air && (targetMask & TargetCapability.Air) != 0) isTargetable = true;
+                                if (targetType == UnitType.Missile && (targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+
+                                if (isTargetable)
+                                {
+                                    float distSqr = (origin - ((MonoBehaviour)target).transform.position).sqrMagnitude;
+                                    if (distSqr <= range * range)
+                                    {
+                                        results.Add(target);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return results;
+        }
         public static SpatialGridSystem Instance { get; private set; }
 
         [Header("Settings")]
-        public float CellSize = 50f;
+        public float CellSize = 2000f; // Increased from 50f to reduce iteration count for long-range weapons
 
         // Dictionary mapping Grid Coordinates (x,y) to a List of Damageables in that cell
         private Dictionary<Vector2Int, List<IDamageable>> grid = new Dictionary<Vector2Int, List<IDamageable>>();
@@ -22,9 +69,11 @@ namespace NavalCommand.Systems
             if (Instance == null)
             {
                 Instance = this;
+                Debug.Log("[SpatialGridSystem] Initialized.");
             }
             else
             {
+                Debug.LogWarning("[SpatialGridSystem] Duplicate instance destroyed.");
                 Destroy(gameObject);
             }
         }
@@ -40,6 +89,7 @@ namespace NavalCommand.Systems
 
             grid[cell].Add(obj);
             objectCellMap[obj] = cell;
+            Debug.Log($"[SpatialGridSystem] Registered {((MonoBehaviour)obj).name} at {cell}. Team: {obj.GetTeam()}");
         }
 
         public void Unregister(IDamageable obj)
@@ -51,6 +101,7 @@ namespace NavalCommand.Systems
                     grid[cell].Remove(obj);
                 }
                 objectCellMap.Remove(obj);
+                Debug.Log($"[SpatialGridSystem] Unregistered {((MonoBehaviour)obj).name} from {cell}");
             }
         }
 
@@ -84,39 +135,7 @@ namespace NavalCommand.Systems
             }
         }
 
-        public List<IDamageable> GetTargetsInRange(Vector3 origin, float range, Team searchTeam)
-        {
-            List<IDamageable> results = new List<IDamageable>();
-            Vector2Int centerCell = GetCellPos(origin);
-            int cellRange = Mathf.CeilToInt(range / CellSize);
 
-            // Search neighboring cells
-            for (int x = -cellRange; x <= cellRange; x++)
-            {
-                for (int y = -cellRange; y <= cellRange; y++)
-                {
-                    Vector2Int checkCell = centerCell + new Vector2Int(x, y);
-                    
-                    if (grid.TryGetValue(checkCell, out List<IDamageable> cellContent))
-                    {
-                        foreach (var target in cellContent)
-                        {
-                            // Basic filtering
-                            if (target.GetTeam() == searchTeam && !target.IsDead())
-                            {
-                                float distSqr = (origin - ((MonoBehaviour)target).transform.position).sqrMagnitude;
-                                if (distSqr <= range * range)
-                                {
-                                    results.Add(target);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            return results;
-        }
 
         private Vector2Int GetCellPos(Vector3 pos)
         {

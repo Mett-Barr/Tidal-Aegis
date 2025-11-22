@@ -4,12 +4,23 @@ using NavalCommand.Infrastructure;
 
 namespace NavalCommand.Systems
 {
+    public enum SpawnMode
+    {
+        Random,
+        Specific
+    }
+
     public class SpawningSystem : MonoBehaviour
     {
         [Header("Spawn Settings")]
         public GameObject[] EnemyPrefabs; // Array of possible enemies
         public float SpawnRadius = 4000f;
         public float SpawnInterval = 2f;
+
+        [Header("Debug Settings")]
+        public SpawnMode Mode = SpawnMode.Specific; // Default to Specific for now
+        public int SpecificEnemyIndex = 0;
+        public string SpecificPrefabName = "Ship_Light_Missile"; // Default to Missile Ship
 
         private float spawnTimer;
 
@@ -39,11 +50,52 @@ namespace NavalCommand.Systems
                 spawnPos += GameManager.Instance.PlayerFlagship.transform.position;
             }
 
-            // Randomly select prefab
-            GameObject prefab = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
+            // Select prefab based on mode
+            GameObject prefab = null;
+            if (Mode == SpawnMode.Specific)
+            {
+                // Try to find by name first
+                if (!string.IsNullOrEmpty(SpecificPrefabName))
+                {
+                    foreach (var p in EnemyPrefabs)
+                    {
+                        if (p.name == SpecificPrefabName)
+                        {
+                            prefab = p;
+                            break;
+                        }
+                    }
+                }
+
+                // Fallback to index if name not found
+                if (prefab == null)
+                {
+                    int index = Mathf.Clamp(SpecificEnemyIndex, 0, EnemyPrefabs.Length - 1);
+                    prefab = EnemyPrefabs[index];
+                }
+            }
+            else
+            {
+                prefab = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
+            }
+
             if (prefab != null)
             {
-                Instantiate(prefab, spawnPos, Quaternion.LookRotation(-spawnPos.normalized));
+                GameObject enemyObj = Instantiate(prefab, spawnPos, Quaternion.LookRotation(-spawnPos.normalized));
+                
+                // Force Team Assignment for Spawned Enemies
+                var unit = enemyObj.GetComponent<NavalCommand.Entities.Units.BaseUnit>();
+                if (unit != null)
+                {
+                    unit.UnitTeam = Team.Enemy;
+                    
+                    // Also update all child WeaponControllers
+                    var weapons = enemyObj.GetComponentsInChildren<NavalCommand.Entities.Components.WeaponController>();
+                    foreach (var wc in weapons)
+                    {
+                        wc.OwnerTeam = Team.Enemy;
+                    }
+                }
             }
         }
     }

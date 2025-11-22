@@ -1,6 +1,8 @@
 using UnityEngine;
 using NavalCommand.Core;
 
+using NavalCommand.Entities.Components; // Added for WeaponController
+
 namespace NavalCommand.Entities.Units
 {
     public class EnemyUnit : BaseUnit
@@ -47,12 +49,35 @@ namespace NavalCommand.Entities.Units
             }
         }
 
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            UnitTeam = Team.Enemy;
+        }
+
         private void Start()
         {
             // Find target (Player Flagship)
             if (GameManager.Instance != null && GameManager.Instance.PlayerFlagship != null)
             {
                 target = GameManager.Instance.PlayerFlagship.transform;
+            }
+
+            // Auto-calculate AttackRange based on weapons
+            var weapons = GetComponentsInChildren<WeaponController>();
+            float maxRange = 0f;
+            foreach (var w in weapons)
+            {
+                if (w.WeaponStats != null && w.WeaponStats.Range > maxRange)
+                {
+                    maxRange = w.WeaponStats.Range;
+                }
+            }
+            
+            if (maxRange > 0)
+            {
+                // Stay at 80% of max range to ensure reliable firing
+                AttackRange = maxRange * 0.8f; 
             }
         }
 
@@ -76,7 +101,9 @@ namespace NavalCommand.Entities.Units
             }
             else
             {
-                // Orbit or Stop (Placeholder)
+                // Stop but keep facing target to fire
+                Rb.velocity = Vector3.zero;
+                transform.LookAt(target);
             }
         }
     }

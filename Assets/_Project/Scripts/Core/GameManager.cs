@@ -70,12 +70,14 @@ namespace NavalCommand.Core
         {
             if (CurrentState == GameState.Playing)
             {
+                Debug.Log("[GameManager] Game Paused via TogglePause.");
                 CurrentState = GameState.Paused;
                 Time.timeScale = 0f;
                 EventManager.TriggerPauseToggled(true);
             }
             else if (CurrentState == GameState.Paused)
             {
+                Debug.Log("[GameManager] Game Resumed via TogglePause.");
                 CurrentState = GameState.Playing;
                 Time.timeScale = 1f;
                 EventManager.TriggerPauseToggled(false);

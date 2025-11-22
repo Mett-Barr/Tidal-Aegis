@@ -131,13 +131,15 @@ namespace NavalCommand.Entities.Units
         protected override void Die()
         {
             // Flagship death logic: Game Over
-            Debug.Log("Flagship Destroyed! Game Over.");
-            
-            if (Core.GameManager.Instance != null)
+            // Only trigger Game Over if this is actually the PLAYER'S flagship
+            if (Core.GameManager.Instance != null && Core.GameManager.Instance.PlayerFlagship == this)
             {
-                // Trigger Game Over state in GameManager (need to implement SetGameOver)
-                // For now, just pause
+                Debug.LogError($"[FlagshipController] PLAYER Flagship Destroyed (HP <= 0)! Initiating Game Over/Pause.");
                 Core.GameManager.Instance.TogglePause();
+            }
+            else
+            {
+                Debug.Log($"[FlagshipController] Enemy/Other Flagship Destroyed. No Game Over.");
             }
             
             // Do NOT call base.Die() because we don't want to Despawn/Destroy the player object immediately

@@ -1,6 +1,7 @@
 using UnityEngine;
 using NavalCommand.Core;
 using NavalCommand.Infrastructure;
+using NavalCommand.Systems;
 
 namespace NavalCommand.Entities.Projectiles
 {
@@ -11,8 +12,80 @@ namespace NavalCommand.Entities.Projectiles
         Straight
     }
 
-    public class ProjectileBehavior : MonoBehaviour
+    public class ProjectileBehavior : MonoBehaviour, IDamageable
     {
+        // ... (Existing fields)
+
+        // [ADDED] IDamageable Implementation
+        public void TakeDamage(float amount)
+        {
+            // Missiles are fragile, any damage destroys them
+            Despawn();
+        }
+
+        public bool IsDead() => isDespawning;
+
+        public Team GetTeam() => ProjectileTeam;
+
+        public UnitType GetUnitType() => UnitType.Missile;
+
+        // ... (Existing Awake/Start/FixedUpdate/etc)
+
+        private void OnEnable()
+        {
+            isDespawning = false;
+            isInitialized = false; 
+            isVerticalPhaseComplete = false;
+            
+            TrailRenderer trail = GetComponent<TrailRenderer>();
+            if (trail != null)
+            {
+                trail.Clear();
+            }
+
+            // Register with SpatialGridSystem for interception
+            if (SpatialGridSystem.Instance != null)
+            {
+                SpatialGridSystem.Instance.Register(this, transform.position);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (SpatialGridSystem.Instance != null)
+            {
+                SpatialGridSystem.Instance.Unregister(this);
+            }
+        }
+
+        private void Update()
+        {
+            if (!isInitialized) return;
+
+            // Update Grid Position
+            if (SpatialGridSystem.Instance != null)
+            {
+                SpatialGridSystem.Instance.UpdatePosition(this, transform.position);
+            }
+
+            // Check for water entry (Sea Level = 0)
+            // Exception: Torpedoes (CruiseHeight < 0) are allowed underwater
+            bool isTorpedo = (BehaviorType == ProjectileType.Homing && CruiseHeight < 0);
+            
+            if (!isTorpedo && transform.position.y < -1f) // Tolerance
+            {
+                CreateSplash();
+                Despawn();
+                return;
+            }
+            
+            // Rotate to face velocity vector for Ballistic
+            if (BehaviorType == ProjectileType.Ballistic && rb.velocity.sqrMagnitude > 0.1f)
+            {
+                transform.rotation = Quaternion.LookRotation(rb.velocity);
+            }
+        }
+
         [Header("Settings")]
         public ProjectileType BehaviorType;
         public float Speed = 20f;
@@ -158,27 +231,7 @@ namespace NavalCommand.Entities.Projectiles
             rb.velocity = transform.forward * Speed;
         }
 
-        private void Update()
-        {
-            if (!isInitialized) return;
 
-            // Check for water entry (Sea Level = 0)
-            // Exception: Torpedoes (CruiseHeight < 0) are allowed underwater
-            bool isTorpedo = (BehaviorType == ProjectileType.Homing && CruiseHeight < 0);
-            
-            if (!isTorpedo && transform.position.y < -1f) // Tolerance
-            {
-                CreateSplash();
-                Despawn();
-                return;
-            }
-            
-            // Rotate to face velocity vector for Ballistic
-            if (BehaviorType == ProjectileType.Ballistic && rb.velocity.sqrMagnitude > 0.1f)
-            {
-                transform.rotation = Quaternion.LookRotation(rb.velocity);
-            }
-        }
 
         private void CreateSplash()
         {
@@ -203,18 +256,7 @@ namespace NavalCommand.Entities.Projectiles
         private bool isDespawning = false;
         private bool isInitialized = false;
 
-        private void OnEnable()
-        {
-            isDespawning = false;
-            isInitialized = false; 
-            isVerticalPhaseComplete = false;
-            
-            TrailRenderer trail = GetComponent<TrailRenderer>();
-            if (trail != null)
-            {
-                trail.Clear();
-            }
-        }
+
 
         public Team ProjectileTeam; 
 
@@ -255,6 +297,9 @@ namespace NavalCommand.Entities.Projectiles
         {
             if (isDespawning || !isInitialized) return;
 
+            // Safety Delay: Ignore all collisions for first 0.2s to clear launcher
+            if (Time.time - launchTime < 0.2f) return;
+
             // Ignore collision with owner AND its children
             if (Owner != null)
             {
@@ -276,14 +321,14 @@ namespace NavalCommand.Entities.Projectiles
                     return; // Ignore friendly units
                 }
 
-                Debug.Log($"Projectile hit Enemy: {other.name}");
+                // Debug.Log($"Projectile hit Enemy: {other.name}");
                 damageable.TakeDamage(Damage);
             }
             else
             {
                 // Hit something non-damageable (like environment?)
                 // For now, destroy on any impact except friendly
-                Debug.Log($"Projectile hit Environment: {other.name}");
+                // Debug.Log($"Projectile hit Environment: {other.name}");
             }
             
             isDespawning = true;

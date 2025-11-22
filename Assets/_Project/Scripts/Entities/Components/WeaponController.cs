@@ -26,6 +26,17 @@ namespace NavalCommand.Entities.Components
             {
                 Debug.LogWarning($"WeaponController on {gameObject.name} has no WeaponStats assigned! Turret will be inactive.");
             }
+            else if (WeaponStats.Range <= 0)
+            {
+                Debug.LogWarning($"WeaponController on {gameObject.name} has invalid Range ({WeaponStats.Range})! Turret may not fire.");
+            }
+
+            // Sync Team with Parent Unit
+            var parentUnit = GetComponentInParent<BaseUnit>();
+            if (parentUnit != null)
+            {
+                OwnerTeam = parentUnit.UnitTeam;
+            }
         }
 
         private void Update()
@@ -43,8 +54,11 @@ namespace NavalCommand.Entities.Components
                 
                 // Only fire if aiming roughly at target
                 Vector3 dirToTarget = (currentTarget.position - transform.position).normalized;
-                if (Vector3.Dot(transform.forward, dirToTarget) > 0.95f && cooldownTimer <= 0)
+                float dot = Vector3.Dot(transform.forward, dirToTarget);
+                
+                if (dot > 0.95f && cooldownTimer <= 0)
                 {
+                    Debug.Log($"[WeaponController] Firing {WeaponStats.name} at {currentTarget.name}!");
                     Fire(currentTarget.GetComponent<IDamageable>());
                 }
             }
@@ -58,7 +72,13 @@ namespace NavalCommand.Entities.Components
             Team targetTeam = (OwnerTeam == Team.Player) ? Team.Enemy : Team.Player;
 
             // Query Spatial Grid
-            var targets = SpatialGridSystem.Instance.GetTargetsInRange(transform.position, WeaponStats.Range, targetTeam);
+            var targets = SpatialGridSystem.Instance.GetTargetsInRange(transform.position, WeaponStats.Range, targetTeam, WeaponStats.TargetType);
+            
+            // Debug Log for Target Search
+            if (Time.frameCount % 120 == 0) // Log every 2 seconds
+            {
+                 Debug.Log($"[WeaponController] {gameObject.name} (Team: {OwnerTeam}) searching for {targetTeam} in range {WeaponStats.Range}. Found {targets.Count} targets.");
+            }
 
             if (targets.Count > 0)
             {
@@ -138,11 +158,15 @@ namespace NavalCommand.Entities.Components
                 }
             }
 
-            if (aimVector.HasValue)
+            if (aimVector.HasValue && aimVector.Value.sqrMagnitude > 0.001f)
             {
                 // Apply Rotation
-                Quaternion lookRotation = Quaternion.LookRotation(aimVector.Value);
-                
+                // Validate aimVector before LookRotation
+                if (float.IsNaN(aimVector.Value.x) || float.IsNaN(aimVector.Value.y) || float.IsNaN(aimVector.Value.z))
+                {
+                    return;
+                }
+
                 // 1. Rotate Base (Yaw) - Only Y axis
                 Vector3 yawDir = aimVector.Value;
                 yawDir.y = 0;
@@ -155,13 +179,18 @@ namespace NavalCommand.Entities.Components
                 // 2. Rotate FirePoint (Pitch) - Local X axis
                 // We need to convert the world aim vector to local space relative to the turret base
                 Vector3 localAim = transform.InverseTransformDirection(aimVector.Value);
-                float pitchAngle = Mathf.Atan2(localAim.y, new Vector2(localAim.x, localAim.z).magnitude) * Mathf.Rad2Deg;
                 
-                // Clamp pitch if needed (e.g. -10 to +85)
-                // pitchAngle = Mathf.Clamp(pitchAngle, -10f, 85f);
-
-                Quaternion pitchRot = Quaternion.Euler(-pitchAngle, 0, 0); // Negative because X-up is usually pitch up
-                FirePoint.localRotation = Quaternion.Slerp(FirePoint.localRotation, pitchRot, Time.deltaTime * RotationSpeed);
+                // Check for zero vector in local space (shouldn't happen if world is valid, but safe to check)
+                if (new Vector2(localAim.x, localAim.z).sqrMagnitude > 0.0001f)
+                {
+                    float pitchAngle = Mathf.Atan2(localAim.y, new Vector2(localAim.x, localAim.z).magnitude) * Mathf.Rad2Deg;
+                    
+                    if (!float.IsNaN(pitchAngle))
+                    {
+                        Quaternion pitchRot = Quaternion.Euler(-pitchAngle, 0, 0); // Negative because X-up is usually pitch up
+                        FirePoint.localRotation = Quaternion.Slerp(FirePoint.localRotation, pitchRot, Time.deltaTime * RotationSpeed);
+                    }
+                }
             }
         }
 
@@ -172,6 +201,13 @@ namespace NavalCommand.Entities.Components
         private Vector3? CalculateBallisticVelocity(Vector3 start, Vector3 target, float speed, float gravity)
         {
             Vector3 dir = target - start;
+            
+            // Handle Zero Gravity (Missiles/Torpedoes)
+            if (gravity < 0.001f)
+            {
+                return dir.normalized * speed;
+            }
+
             Vector3 dirXZ = new Vector3(dir.x, 0, dir.z);
             float x = dirXZ.magnitude;
             float y = dir.y;
@@ -187,6 +223,8 @@ namespace NavalCommand.Entities.Components
             // Low arc solution (minus sqrt)
             float angle = Mathf.Atan((v2 - Mathf.Sqrt(root)) / (g * x));
             
+            if (float.IsNaN(angle)) return null;
+
             Vector3 jumpDir = dirXZ.normalized;
             Vector3 v0 = jumpDir * Mathf.Cos(angle) * speed + Vector3.up * Mathf.Sin(angle) * speed;
             return v0;

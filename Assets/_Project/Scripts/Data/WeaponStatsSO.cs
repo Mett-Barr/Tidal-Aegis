@@ -11,6 +11,15 @@ namespace NavalCommand.Data
         CIWS
     }
 
+    [System.Flags]
+    public enum TargetCapability
+    {
+        None = 0,
+        Surface = 1,
+        Air = 2,
+        Missile = 4
+    }
+
     [CreateAssetMenu(fileName = "NewWeaponStats", menuName = "NavalCommand/WeaponStats")]
     public class WeaponStatsSO : ScriptableObject
     {
@@ -20,6 +29,7 @@ namespace NavalCommand.Data
 
         [Header("Combat Stats")]
         public WeaponType Type;
+        public TargetCapability TargetType = TargetCapability.Surface;
         public float Range;
         public float Cooldown;
         public float Damage;

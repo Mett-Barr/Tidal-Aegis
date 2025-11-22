@@ -8,6 +8,12 @@ namespace NavalCommand.Entities.Units
         public float MoveSpeed = 15f;
         public float CollisionDamage = 50f;
 
+        protected override void Awake()
+        {
+            base.Awake();
+            UnitTeam = Team.Enemy;
+        }
+
         public override void Move()
         {
             if (GameManager.Instance != null && GameManager.Instance.PlayerFlagship != null)

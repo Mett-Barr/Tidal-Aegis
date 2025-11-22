@@ -206,22 +206,6 @@ namespace NavalCommand.Utils
                     // Standard Turret
                     GameObject baseObj = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1.5f, 0.5f, 1.5f), Vector3.zero);
                     baseObj.GetComponent<Renderer>().material.color = weaponColor;
-                    
-                    GameObject barrel = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2.5f, 0.3f), new Vector3(0, 0.25f, 1.25f), new Vector3(90, 0, 0));
-                    barrel.GetComponent<Renderer>().material.color = weaponColor;
-                    
-                    // Add FirePoint
-                    GameObject fp = new GameObject("FirePoint");
-                    fp.transform.SetParent(container.transform);
-                    fp.transform.localPosition = new Vector3(0, 0.25f, 2.5f); // Tip of barrel
-                    break;
-
-                case WeaponType.Autocannon:
-                    // Boxy Turret with dual barrels
-                    GameObject box = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1f, 0.6f, 1f), Vector3.zero);
-                    box.GetComponent<Renderer>().material.color = weaponColor;
-                    
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(-0.2f, 0, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = weaponColor;
                     CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = weaponColor;
                     break;
 
@@ -269,48 +253,65 @@ namespace NavalCommand.Utils
             float L = 0f;
             
             // Layout Definitions (z_norm: 0=Bow, 1=Stern)
-            System.Collections.Generic.List<float> mountNormPositions = new System.Collections.Generic.List<float>(); 
+            // We now store Vector3 for mount positions to allow side mounts
+            System.Collections.Generic.List<Vector3> mountNormPositions = new System.Collections.Generic.List<Vector3>(); 
             float islandNormPosition = 0.5f;
             
             switch (weight)
             {
                 case WeightClass.Light: // S Class
-                    // L:W ~ 3.75 (approx from previous, user didn't specify exact ratio in this prompt but implied similar)
+                    // L:W ~ 3.75
                     L = W * 3.75f;
-                    
-                    // S: Front Mount -> Island
-                    // Mount: z_norm ~ 0.25
-                    // Island: z_norm ~ 0.60
-                    mountNormPositions.Add(0.25f);
+                    mountNormPositions.Add(new Vector3(0, 0, 0.25f));
                     islandNormPosition = 0.60f;
                     break;
                     
                 case WeightClass.Medium: // M Class
                     // L:W ~ 4.75
                     L = W * 4.75f;
-                    
-                    // M: Front Mount -> Island -> Rear Mount
-                    // Mount Fwd: z_norm ~ 0.22
-                    // Island: z_norm ~ 0.50
-                    // Mount Aft: z_norm ~ 0.80
-                    mountNormPositions.Add(0.22f);
+                    mountNormPositions.Add(new Vector3(0, 0, 0.22f));
                     islandNormPosition = 0.50f;
-                    mountNormPositions.Add(0.80f);
+                    mountNormPositions.Add(new Vector3(0, 0, 0.80f));
                     break;
                     
                 case WeightClass.Heavy: // L Class
                     // L:W ~ 6.0
                     L = W * 6.0f;
-                    
-                    // L: Front Mount 1 -> Front Mount 2 -> Island -> Rear Mount
-                    // Mount Fwd 1: z_norm ~ 0.18
-                    // Mount Fwd 2: z_norm ~ 0.40
-                    // Island: z_norm ~ 0.63
-                    // Mount Aft: z_norm ~ 0.88
-                    mountNormPositions.Add(0.18f);
-                    mountNormPositions.Add(0.40f);
-                    mountNormPositions.Add(0.88f);
+                    mountNormPositions.Add(new Vector3(0, 0, 0.18f));
+                    mountNormPositions.Add(new Vector3(0, 0, 0.40f));
+                    mountNormPositions.Add(new Vector3(0, 0, 0.88f));
                     islandNormPosition = 0.63f;
+                    break;
+
+                case WeightClass.SuperHeavy: // XL Class (Super Flagship)
+                    // Huge dimensions: L ~ 80m, W ~ 10m
+                    W = 10f;
+                    L = 80f;
+                    H_hull = 4f;
+                    H_super = 5f;
+
+                    // 3 Centerline Mounts
+                    mountNormPositions.Add(new Vector3(0, 0, 0.1f)); // Bow
+                    mountNormPositions.Add(new Vector3(0, 0, 0.25f)); // Mid-Bow
+                    mountNormPositions.Add(new Vector3(0, 0, 0.9f)); // Stern
+
+                    // 10 Side Mounts (5 Port, 5 Starboard)
+                    // Spaced along the mid-section
+                    float sideX = 0.35f; // Normalized X offset from center (relative to Width?) No, let's use absolute or relative to W.
+                    // Actually, let's store normalized X where 1.0 is edge. 
+                    // But our logic below uses absolute X? 
+                    // Let's stick to the pattern: Vector3(x_norm, y_unused, z_norm). 
+                    // x_norm: -0.5 to 0.5 (relative to W)
+                    
+                    float[] sideZ = new float[] { 0.35f, 0.45f, 0.55f, 0.65f, 0.75f };
+                    
+                    foreach (float z in sideZ)
+                    {
+                        mountNormPositions.Add(new Vector3(-0.4f, 0, z)); // Port
+                        mountNormPositions.Add(new Vector3(0.4f, 0, z));  // Starboard
+                    }
+
+                    islandNormPosition = 0.5f; // Center Island
                     break;
             }
 
@@ -319,6 +320,10 @@ namespace NavalCommand.Utils
             // z_norm = 1 => Z = -L/2 (Stern)
             // Z = (L/2) - (z_norm * L)
             float GetZ(float z_norm) => (L / 2f) - (z_norm * L);
+            
+            // x_norm = 0 => X = 0
+            // X = x_norm * W
+            float GetX(float x_norm) => x_norm * W;
 
             // 1. Generate Hull Mesh
             // Hull goes from Y = -H_hull to Y = 0 (Main Deck)
@@ -337,30 +342,41 @@ namespace NavalCommand.Utils
             // All components sit on Main Deck (Y=0)
             
             float mountDiameter = W * 0.65f; // Spec: 0.6 ~ 0.7 * B
+            if (weight == WeightClass.SuperHeavy) mountDiameter = W * 0.4f; // Smaller relative mounts for SuperHeavy
+
             float islandWidth = W * 0.8f;    // Spec: 0.8 * B
             float islandLength = mountDiameter * 1.0f; // Spec: 0.8 ~ 1.2 * MountDiameter
+            if (weight == WeightClass.SuperHeavy) islandLength = L * 0.2f; // Longer island for SuperHeavy
 
             // Place Mounts
             int mountIndex = 1;
-            foreach (float normPos in mountNormPositions)
+            foreach (Vector3 normPos in mountNormPositions)
             {
-                float z = GetZ(normPos);
+                float z = GetZ(normPos.z);
+                float x = GetX(normPos.x);
                 
                 // Visual Representation of Mount Base
                 // Base sits at Y=0. Height is small (e.g., 0.1 * H_super ~ 0.2m)
                 float baseHeight = 0.2f;
-                float turretHeight = H_super * 0.6f; // Spec: Y ~ 0.6 * H_super
                 
                 // Create Base (The "Hardpoint")
-                GameObject mountBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, baseHeight, mountDiameter), new Vector3(0, baseHeight / 2f, z));
+                GameObject mountBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, baseHeight, mountDiameter), new Vector3(x, baseHeight / 2f, z));
                 mountBase.name = $"MountPoint_{mountIndex}";
                 mountBase.GetComponent<Renderer>().material.color = deckColor;
-                
-                // Note: The actual weapon prefab will be attached to this MountPoint.
-                // The weapon prefab should ideally handle its own turret visual height.
-                // But for the "Empty Hull" visualization, we might want to show a placeholder?
-                // The user asked for "Empty Hull" functionality, which implies just the slots.
-                // So just the base is fine.
+
+                // Rotate Side Mounts
+                if (normPos.x < -0.1f) // Port
+                {
+                    mountBase.transform.localRotation = Quaternion.Euler(0, -90, 0);
+                }
+                else if (normPos.x > 0.1f) // Starboard
+                {
+                    mountBase.transform.localRotation = Quaternion.Euler(0, 90, 0);
+                }
+                else if (normPos.z > 0.8f) // Stern (Rear)
+                {
+                    mountBase.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                }
                 
                 mountIndex++;
             }

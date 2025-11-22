@@ -4,6 +4,7 @@ namespace NavalCommand.Data
 {
     public enum WeightClass
     {
+        SuperHeavy,
         Heavy,
         Medium,
         Light
