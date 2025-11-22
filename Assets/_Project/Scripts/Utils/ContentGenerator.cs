@@ -115,28 +115,58 @@ namespace NavalCommand.Utils
 
         private static void GenerateWeaponStats()
         {
-            // Flagship Gun: Reliable, medium range, slow turn
-            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, 150000f, 3f, 30f, 
-                762f, "Projectile_FlagshipGun", 30f);
+            // Flagship Gun: Reliable, medium range, slow turn, low spread
+            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, 
+                WeaponConstants.FlagshipGun.Range, 
+                WeaponConstants.FlagshipGun.Cooldown, 
+                WeaponConstants.FlagshipGun.Damage, 
+                WeaponConstants.FlagshipGun.ProjectileSpeed, 
+                "Projectile_FlagshipGun", 
+                WeaponConstants.FlagshipGun.RotationSpeed, 
+                WeaponConstants.FlagshipGun.Spread);
             
             // Missile: Long range, slow reload, high damage, medium turn
-            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, 120000f, 10f, 60f, 
-                290f, "Projectile_Missile", 45f);
+            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, 
+                WeaponConstants.Missile.Range, 
+                WeaponConstants.Missile.Cooldown, 
+                WeaponConstants.Missile.Damage, 
+                WeaponConstants.Missile.ProjectileSpeed, 
+                "Projectile_Missile", 
+                WeaponConstants.Missile.RotationSpeed, 
+                WeaponConstants.Missile.Spread);
             
             // Torpedo: Medium range, very slow reload, massive damage, slow turn
-            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, 10000f, 12f, 100f, 
-                28f, "Projectile_Torpedo", 30f);
+            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, 
+                WeaponConstants.Torpedo.Range, 
+                WeaponConstants.Torpedo.Cooldown, 
+                WeaponConstants.Torpedo.Damage, 
+                WeaponConstants.Torpedo.ProjectileSpeed, 
+                "Projectile_Torpedo", 
+                WeaponConstants.Torpedo.RotationSpeed, 
+                WeaponConstants.Torpedo.Spread);
             
             // Autocannon: Short range, rapid fire, suppression, fast turn
-            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, 2500f, 0.2f, 5f, 
-                1100f, "Projectile_Autocannon", 120f);
+            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, 
+                WeaponConstants.Autocannon.Range, 
+                WeaponConstants.Autocannon.Cooldown, 
+                WeaponConstants.Autocannon.Damage, 
+                WeaponConstants.Autocannon.ProjectileSpeed, 
+                "Projectile_Autocannon", 
+                WeaponConstants.Autocannon.RotationSpeed, 
+                WeaponConstants.Autocannon.Spread);
             
             // CIWS: Very short range, extreme fire rate, defense, very fast turn
-            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, 1500f, 0.05f, 2f, 
-                1100f, "Projectile_CIWS", 180f);
+            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, 
+                WeaponConstants.CIWS.Range, 
+                WeaponConstants.CIWS.Cooldown, 
+                WeaponConstants.CIWS.Damage, 
+                WeaponConstants.CIWS.ProjectileSpeed, 
+                "Projectile_CIWS", 
+                WeaponConstants.CIWS.RotationSpeed, 
+                WeaponConstants.CIWS.Spread);
         }
 
-        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName, float rotationSpeed)
+        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName, float rotationSpeed, float spread)
         {
             string path = $"Assets/_Project/Data/Weapons/{name}.asset";
             WeaponStatsSO so = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(path);
@@ -155,6 +185,7 @@ namespace NavalCommand.Utils
             so.ProjectileSpeed = speed;
             so.GravityMultiplier = 1f; // Default to 1, System will override if needed
             so.RotationSpeed = rotationSpeed;
+            so.Spread = spread;
             
             string projPath = $"Assets/_Project/Prefabs/Projectiles/{projectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);

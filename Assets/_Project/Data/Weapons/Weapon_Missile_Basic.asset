@@ -21,7 +21,8 @@ MonoBehaviour:
   ProjectileSpeed: 290
   GravityMultiplier: 1
   RotationSpeed: 45
-  ProjectilePrefab: {fileID: 5551063377300814980, guid: e0946eafee698da49add6955c5d9fd5f,
+  Spread: 0
+  ProjectilePrefab: {fileID: 7337034614244072608, guid: e0946eafee698da49add6955c5d9fd5f,
     type: 3}
   TargetMask:
     serializedVersion: 2

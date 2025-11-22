@@ -36,6 +36,7 @@ namespace NavalCommand.Data
         public float ProjectileSpeed = 20f;
         public float GravityMultiplier = 1f;
         public float RotationSpeed = 30f; // Degrees per second
+        public float Spread = 0f; // Random spread in degrees
 
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;

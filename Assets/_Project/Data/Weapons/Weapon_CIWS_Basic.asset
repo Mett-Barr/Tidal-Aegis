@@ -16,12 +16,13 @@ MonoBehaviour:
   Type: 4
   TargetType: 6
   Range: 1500
-  Cooldown: 0.05
+  Cooldown: 0.008
   Damage: 2
   ProjectileSpeed: 1100
   GravityMultiplier: 1
-  RotationSpeed: 180
-  ProjectilePrefab: {fileID: 2932464360990072521, guid: 53a5e88dc65ed264398d26f2db714d92,
+  RotationSpeed: 115
+  Spread: 0.3
+  ProjectilePrefab: {fileID: 6312151020088598093, guid: 53a5e88dc65ed264398d26f2db714d92,
     type: 3}
   TargetMask:
     serializedVersion: 2

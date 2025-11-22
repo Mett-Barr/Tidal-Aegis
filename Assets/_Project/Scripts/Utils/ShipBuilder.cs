@@ -460,16 +460,14 @@ namespace NavalCommand.Utils
             }
 
             // Bottom Hull (Y = -depth)
-            // We can taper the bottom slightly for a "hull" look, or keep it prismatic.
-            // Let's keep it prismatic for now as per "Capsule" description, maybe scale it down slightly?
-            // Spec says "Hull Module... single module... length/width/depth".
-            // Let's just make it a prism for simplicity and robustness.
+            // User requested a Long Hexagonal Prism (No Taper)
             Vector3 bottomCenter = new Vector3(0, yBottom, 0);
+            
             for (int i = 0; i < 6; i++)
             {
                 Vector3 p1 = profile[i]; p1.y = yBottom;
                 Vector3 p2 = profile[(i + 1) % 6]; p2.y = yBottom;
-                AddTri(bottomCenter, p2, p1); // Reverse winding
+                AddTri(bottomCenter, p2, p1); // Reverse winding for bottom face (Normal points down)
             }
 
             // Sides
@@ -480,8 +478,11 @@ namespace NavalCommand.Utils
                 Vector3 t1 = profile[i]; t1.y = yTop;
                 Vector3 t2 = profile[(i + 1) % 6]; t2.y = yTop;
                 
+                // Winding: Bottom-Current -> Top-Current -> Top-Next -> Bottom-Next
+                // This creates an outward facing normal
                 AddQuad(b1, t1, t2, b2);
             }
+
 
             mesh.SetVertices(verts);
             mesh.SetTriangles(tris, 0);

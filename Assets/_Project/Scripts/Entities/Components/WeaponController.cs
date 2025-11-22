@@ -180,10 +180,26 @@ namespace NavalCommand.Entities.Components
             }
 
             // Firing (Synced with Update for frame-perfect spawning)
-            if (isFiring && cooldownTimer <= 0 && currentTarget != null)
+            if (isFiring && currentTarget != null)
             {
-                Fire(currentTarget.GetComponent<IDamageable>());
-                isFiring = false; // Reset trigger
+                // Handle High ROF (Multiple shots per frame)
+                while (cooldownTimer <= 0)
+                {
+                    Fire(currentTarget.GetComponent<IDamageable>());
+                    cooldownTimer += WeaponStats.Cooldown; // Accumulate debt
+                    
+                    // Safety break for extremely low cooldowns to prevent freeze
+                    if (WeaponStats.Cooldown < 0.001f) 
+                    {
+                        cooldownTimer = 0;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                // Clamp cooldown if not firing to prevent "burst" on next trigger
+                if (cooldownTimer < 0) cooldownTimer = 0;
             }
         }
 
@@ -278,12 +294,10 @@ namespace NavalCommand.Entities.Components
 
             // Calculate Spread
             Quaternion fireRotation = FirePoint.rotation;
-            if (WeaponStats.Type == WeaponType.CIWS)
+            if (WeaponStats.Spread > 0.01f)
             {
-                // Add 1.5 degree spread for CIWS to create a "Cone of Fire"
-                float spreadAngle = 1.5f;
-                float xSpread = Random.Range(-spreadAngle, spreadAngle);
-                float ySpread = Random.Range(-spreadAngle, spreadAngle);
+                float xSpread = Random.Range(-WeaponStats.Spread, WeaponStats.Spread);
+                float ySpread = Random.Range(-WeaponStats.Spread, WeaponStats.Spread);
                 fireRotation = Quaternion.Euler(fireRotation.eulerAngles.x + xSpread, fireRotation.eulerAngles.y + ySpread, fireRotation.eulerAngles.z);
             }
 
