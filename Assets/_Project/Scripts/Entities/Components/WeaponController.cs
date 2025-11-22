@@ -17,8 +17,20 @@ namespace NavalCommand.Entities.Components
 
         [Header("Turret Settings")]
         public float RotationSpeed = 5f;
+        public bool IsWeaponEnabled = true; // Toggle for testing
+        
         private Transform currentTarget;
         private float cooldownTimer;
+        
+        // Optimization: Staggered Updates
+        private float updateInterval = 0.1f; // Run logic 10 times per second instead of every frame
+        private float updateTimer;
+
+
+        
+        // Coroutine State
+        private Vector3? desiredAimVector;
+        private bool isFiring = false;
 
         private void Start()
         {
@@ -37,235 +49,303 @@ namespace NavalCommand.Entities.Components
             {
                 OwnerTeam = parentUnit.UnitTeam;
             }
+            
+            if (WeaponStats != null)
+            {
+                RotationSpeed = WeaponStats.RotationSpeed;
+            }
+            
+            // Start the Targeting Coroutine
+            StartCoroutine(TargetingRoutine());
+        }
+
+        private System.Collections.IEnumerator TargetingRoutine()
+        {
+            // Initial Random Delay to stagger execution across frames
+            yield return new WaitForSeconds(Random.Range(0f, 0.5f));
+
+            // Dynamic Intervals based on Weapon Type
+            float targetSearchInterval = 1.0f;
+            float aimingInterval = 0.1f;
+
+            if (WeaponStats.Type == WeaponType.CIWS)
+            {
+                // CIWS needs to be much faster to catch missiles
+                targetSearchInterval = 0.2f;
+                aimingInterval = 0.05f;
+            }
+
+            while (true)
+            {
+                if (!IsWeaponEnabled) 
+                {
+                    yield return new WaitForSeconds(1f);
+                    continue;
+                }
+
+                // 1. Find Target
+                FindTarget();
+                
+                if (currentTarget == null)
+                {
+                    // No target found, wait before searching again to avoid infinite loop
+                    yield return new WaitForSeconds(targetSearchInterval);
+                    continue;
+                }
+                
+                // 2. Aiming Loop
+                // Run aiming logic for 'targetSearchInterval' duration
+                float timeElapsed = 0f;
+                while (timeElapsed < targetSearchInterval)
+                {
+                    if (currentTarget != null)
+                    {
+                        desiredAimVector = RotateTowardsTarget(); // Calculate aim only
+                        
+                        if (desiredAimVector.HasValue)
+                        {
+                            // Check Fire Condition
+                            float dot = Vector3.Dot(FirePoint.forward, desiredAimVector.Value.normalized);
+                            if (dot > 0.999f && cooldownTimer <= 0)
+                            {
+                                isFiring = true;
+                            }
+                            else
+                            {
+                                isFiring = false;
+                            }
+                        }
+                        else
+                        {
+                            isFiring = false;
+                        }
+                    }
+                    else
+                    {
+                        isFiring = false;
+                        desiredAimVector = null;
+                        // If no target, break aiming loop early to search again
+                        break; 
+                    }
+                    
+                    yield return new WaitForSeconds(aimingInterval);
+                    timeElapsed += aimingInterval;
+                }
+            }
         }
 
         private void Update()
         {
+            if (!IsWeaponEnabled) return;
+
             if (cooldownTimer > 0)
             {
                 cooldownTimer -= Time.deltaTime;
             }
 
-            FindTarget();
-
-            if (currentTarget != null)
+            // Visual Rotation (Smooth, every frame)
+            if (desiredAimVector.HasValue && desiredAimVector.Value.sqrMagnitude > 0.001f)
             {
-                RotateTowardsTarget();
-                
-                // Only fire if aiming roughly at target
-                Vector3 dirToTarget = (currentTarget.position - transform.position).normalized;
-                float dot = Vector3.Dot(transform.forward, dirToTarget);
-                
-                if (dot > 0.95f && cooldownTimer <= 0)
-                {
-                    Debug.Log($"[WeaponController] Firing {WeaponStats.name} at {currentTarget.name}!");
-                    Fire(currentTarget.GetComponent<IDamageable>());
-                }
-            }
-        }
-
-        private void FindTarget()
-        {
-            if (WeaponStats == null || SpatialGridSystem.Instance == null) return;
-
-            // Determine target team
-            Team targetTeam = (OwnerTeam == Team.Player) ? Team.Enemy : Team.Player;
-
-            // Query Spatial Grid
-            var targets = SpatialGridSystem.Instance.GetTargetsInRange(transform.position, WeaponStats.Range, targetTeam, WeaponStats.TargetType);
-            
-            // Debug Log for Target Search
-            if (Time.frameCount % 120 == 0) // Log every 2 seconds
-            {
-                 Debug.Log($"[WeaponController] {gameObject.name} (Team: {OwnerTeam}) searching for {targetTeam} in range {WeaponStats.Range}. Found {targets.Count} targets.");
-            }
-
-            if (targets.Count > 0)
-            {
-                // Find nearest target
-                float closestDistSqr = float.MaxValue;
-                Transform closestTarget = null;
-
-                foreach (var target in targets)
-                {
-                    Transform tTrans = ((MonoBehaviour)target).transform;
-                    float distSqr = (tTrans.position - transform.position).sqrMagnitude;
-                    if (distSqr < closestDistSqr)
-                    {
-                        closestDistSqr = distSqr;
-                        closestTarget = tTrans;
-                    }
-                }
-                currentTarget = closestTarget;
-            }
-            else
-            {
-                currentTarget = null;
-            }
-        }
-
-        private void RotateTowardsTarget()
-        {
-            if (currentTarget == null) return;
-
-            Vector3 targetPos = currentTarget.position;
-            Vector3 myPos = FirePoint.position; // Use FirePoint for accuracy
-            float speed = WeaponStats.ProjectileSpeed;
-            float gravity = Mathf.Abs(Physics.gravity.y) * WeaponStats.GravityMultiplier;
-
-            // Iterative Solver for Aiming
-            // We need to find a firing angle (and thus a direction) that hits the moving target.
-            // Since flight time depends on the angle (which depends on the predicted position),
-            // and predicted position depends on flight time, we iterate.
-
-            float t = (targetPos - myPos).magnitude / speed; // Initial guess: Linear time
-            Vector3 predictedPos = targetPos;
-            Vector3? aimVector = null;
-
-            Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
-            Vector3 targetVel = (targetRb != null) ? targetRb.velocity : Vector3.zero;
-
-            for (int i = 0; i < 5; i++) // 5 iterations is usually enough
-            {
-                predictedPos = targetPos + targetVel * t;
-                
-                // Calculate ballistic velocity vector needed to hit predictedPos
-                // This solves for the high/low arc. We usually want the low arc.
-                Vector3? v0 = CalculateBallisticVelocity(myPos, predictedPos, speed, gravity);
-
-                if (v0.HasValue)
-                {
-                    aimVector = v0.Value;
-                    // Refine time estimate based on the actual arc length/speed
-                    // For ballistic, horizontal speed is constant: t = dist_xz / v_xz
-                    Vector3 horizontalDist = new Vector3(predictedPos.x - myPos.x, 0, predictedPos.z - myPos.z);
-                    Vector3 horizontalVel = new Vector3(v0.Value.x, 0, v0.Value.z);
-                    
-                    if (horizontalVel.magnitude > 0.001f)
-                    {
-                        float newT = horizontalDist.magnitude / horizontalVel.magnitude;
-                        t = Mathf.Lerp(t, newT, 0.5f); // Smooth convergence
-                    }
-                    else
-                    {
-                        break; // Vertical shot?
-                    }
-                }
-                else
-                {
-                    // Unreachable
-                    break;
-                }
-            }
-
-            if (aimVector.HasValue && aimVector.Value.sqrMagnitude > 0.001f)
-            {
-                // Apply Rotation
-                // Validate aimVector before LookRotation
-                if (float.IsNaN(aimVector.Value.x) || float.IsNaN(aimVector.Value.y) || float.IsNaN(aimVector.Value.z))
-                {
-                    return;
-                }
+                Vector3 aimVector = desiredAimVector.Value;
 
                 // 1. Rotate Base (Yaw) - Only Y axis
-                Vector3 yawDir = aimVector.Value;
+                Vector3 yawDir = aimVector;
                 yawDir.y = 0;
                 if (yawDir.sqrMagnitude > 0.001f)
                 {
                     Quaternion yawRot = Quaternion.LookRotation(yawDir);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, yawRot, Time.deltaTime * RotationSpeed);
+                    transform.rotation = Quaternion.RotateTowards(transform.rotation, yawRot, Time.deltaTime * RotationSpeed);
                 }
 
                 // 2. Rotate FirePoint (Pitch) - Local X axis
-                // We need to convert the world aim vector to local space relative to the turret base
-                Vector3 localAim = transform.InverseTransformDirection(aimVector.Value);
+                Vector3 localAim = transform.InverseTransformDirection(aimVector);
                 
-                // Check for zero vector in local space (shouldn't happen if world is valid, but safe to check)
                 if (new Vector2(localAim.x, localAim.z).sqrMagnitude > 0.0001f)
                 {
                     float pitchAngle = Mathf.Atan2(localAim.y, new Vector2(localAim.x, localAim.z).magnitude) * Mathf.Rad2Deg;
                     
                     if (!float.IsNaN(pitchAngle))
                     {
-                        Quaternion pitchRot = Quaternion.Euler(-pitchAngle, 0, 0); // Negative because X-up is usually pitch up
-                        FirePoint.localRotation = Quaternion.Slerp(FirePoint.localRotation, pitchRot, Time.deltaTime * RotationSpeed);
+                        Quaternion pitchRot = Quaternion.Euler(-pitchAngle, 0, 0);
+                        FirePoint.localRotation = Quaternion.RotateTowards(FirePoint.localRotation, pitchRot, Time.deltaTime * RotationSpeed);
                     }
                 }
+                
+                // Debug Visualization
+                if (WeaponStats.Type == WeaponType.CIWS)
+                {
+                    Debug.DrawRay(FirePoint.position, FirePoint.forward * 100f, Color.red);
+                    Debug.DrawRay(FirePoint.position, aimVector.normalized * 100f, Color.green);
+                }
             }
-        }
 
-        /// <summary>
-        /// Calculates the initial velocity vector needed to hit 'target' from 'start' with speed 'speed' and gravity 'gravity'.
-        /// Returns null if out of range.
-        /// </summary>
-        private Vector3? CalculateBallisticVelocity(Vector3 start, Vector3 target, float speed, float gravity)
-        {
-            Vector3 dir = target - start;
-            
-            // Handle Zero Gravity (Missiles/Torpedoes)
-            if (gravity < 0.001f)
+            // Firing (Synced with Update for frame-perfect spawning)
+            if (isFiring && cooldownTimer <= 0 && currentTarget != null)
             {
-                return dir.normalized * speed;
+                Fire(currentTarget.GetComponent<IDamageable>());
+                isFiring = false; // Reset trigger
             }
-
-            Vector3 dirXZ = new Vector3(dir.x, 0, dir.z);
-            float x = dirXZ.magnitude;
-            float y = dir.y;
-
-            float v2 = speed * speed;
-            float v4 = speed * speed * speed * speed;
-            float g = gravity;
-
-            float root = v4 - g * (g * x * x + 2 * y * v2);
-
-            if (root < 0) return null; // Out of range
-
-            // Low arc solution (minus sqrt)
-            float angle = Mathf.Atan((v2 - Mathf.Sqrt(root)) / (g * x));
-            
-            if (float.IsNaN(angle)) return null;
-
-            Vector3 jumpDir = dirXZ.normalized;
-            Vector3 v0 = jumpDir * Mathf.Cos(angle) * speed + Vector3.up * Mathf.Sin(angle) * speed;
-            return v0;
         }
 
+        private void FindTarget()
+        {
+            if (WeaponStats == null || SpatialGridSystem.Instance == null || WorldPhysicsSystem.Instance == null) return;
 
+            // Get Scaled Range from System
+            float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
+
+            // Determine target team
+            Team targetTeam = (OwnerTeam == Team.Player) ? Team.Enemy : Team.Player;
+
+            // Query Spatial Grid directly for closest target (Optimized)
+            Transform closestTarget = SpatialGridSystem.Instance.GetClosestTarget(transform.position, scaledRange, targetTeam, WeaponStats.TargetType);
+            
+            if (currentTarget != closestTarget)
+            {
+                // Target changed
+                // Debug.Log($"[WeaponController] {gameObject.name} acquired target: {closestTarget?.name}");
+            }
+            
+            currentTarget = closestTarget;
+        }
+
+        private Vector3? RotateTowardsTarget()
+        {
+            if (currentTarget == null || WorldPhysicsSystem.Instance == null) return null;
+
+            Vector3 myPos = FirePoint.position;
+            
+            // Get Scaled Physics Values
+            float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
+            float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
+            
+            // Determine Gravity
+            float gravity = 0f;
+            if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
+            {
+                gravity = 0f;
+            }
+            else
+            {
+                // Check explicit override or default
+                if (WeaponStats.GravityMultiplier < 0.01f) gravity = 0f;
+                else gravity = WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+            }
+
+            // Create Target Predictor
+            Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
+            Vector3 targetVel = (targetRb != null) ? targetRb.velocity : Vector3.zero;
+            
+            // Use Linear Predictor for now (can be swapped for HomingPredictor later)
+            ITargetPredictor predictor = new LinearTargetPredictor(currentTarget.position, targetVel);
+
+            Vector3 aimVector = Vector3.zero;
+            bool hasSolution = false;
+
+            // SIMPLIFIED LOGIC FOR MISSILES/TORPEDOES
+            if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
+            {
+                // For self-guiding weapons, we don't need a perfect ballistic intercept.
+                // We just need to point the launcher roughly at the target so the seeker can acquire it.
+                // Pure Pursuit (Direct Aim) is usually sufficient and safest.
+                aimVector = (currentTarget.position - myPos).normalized * scaledSpeed;
+                hasSolution = true;
+            }
+            else
+            {
+                // For Guns/CIWS, use the Ballistics Computer
+                if (BallisticsComputer.SolveInterception(myPos, scaledSpeed, gravity, predictor, out Vector3 solution, out float t))
+                {
+                    aimVector = solution;
+                    hasSolution = true;
+                }
+            }
+
+            // Solve!
+            if (hasSolution)
+            {
+                // Return the calculated aim vector. 
+                // Actual rotation is now handled in Update() for smoothness.
+                return aimVector;
+            }
+            
+            return null;
+        }
 
         public void Fire(IDamageable target)
         {
-            if (WeaponStats == null || WeaponStats.ProjectilePrefab == null || PoolManager.Instance == null) return;
+            if (WeaponStats == null || WeaponStats.ProjectilePrefab == null || PoolManager.Instance == null || WorldPhysicsSystem.Instance == null) return;
+
+            // Calculate Spread
+            Quaternion fireRotation = FirePoint.rotation;
+            if (WeaponStats.Type == WeaponType.CIWS)
+            {
+                // Add 1.5 degree spread for CIWS to create a "Cone of Fire"
+                float spreadAngle = 1.5f;
+                float xSpread = Random.Range(-spreadAngle, spreadAngle);
+                float ySpread = Random.Range(-spreadAngle, spreadAngle);
+                fireRotation = Quaternion.Euler(fireRotation.eulerAngles.x + xSpread, fireRotation.eulerAngles.y + ySpread, fireRotation.eulerAngles.z);
+            }
 
             // Use PoolManager
-            GameObject projectileObj = PoolManager.Instance.Spawn(WeaponStats.ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+            GameObject projectileObj = PoolManager.Instance.Spawn(WeaponStats.ProjectilePrefab, FirePoint.position, fireRotation);
             
             ProjectileBehavior projectile = projectileObj.GetComponent<ProjectileBehavior>();
             if (projectile != null)
             {
+                // Initialize properly
+                GameObject ownerObj = gameObject;
+                var parentUnit = GetComponentInParent<BaseUnit>();
+                if (parentUnit != null) ownerObj = parentUnit.gameObject;
+                
+                projectile.Initialize(ownerObj, OwnerTeam);
+                
                 projectile.Damage = WeaponStats.Damage;
                 projectile.Target = ((MonoBehaviour)target).transform;
                 
-                GameObject ownerObj = gameObject; // Default to Turret
+                // Get Scaled Physics Values
+                float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
+                float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
                 
-                // If Turret is child of Ship, we might want the Ship to be the owner.
-                var parentUnit = GetComponentInParent<BaseUnit>();
-                if (parentUnit != null)
+                // Calculate Gravity
+                float gravity = 0f;
+                if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
                 {
-                    ownerObj = parentUnit.gameObject;
+                    gravity = 0f;
+                }
+                else
+                {
+                    // Check for explicit override in WeaponStats (if we added it, but we didn't add it to the class yet, so rely on Type)
+                    // Actually, we can check GravityMultiplier
+                    if (WeaponStats.GravityMultiplier < 0.01f)
+                    {
+                        gravity = 0f;
+                    }
+                    else
+                    {
+                        gravity = WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+                    }
+                }
+
+                // Apply Velocity
+                if (projectile.GetComponent<Rigidbody>() is Rigidbody pRb)
+                {
+                    pRb.velocity = fireRotation * Vector3.forward * scaledSpeed;
                 }
                 
-            // Initialize properly to handle collision ignore and team assignment
-            projectile.Initialize(ownerObj, OwnerTeam);
-            
-            // Apply Velocity
-            if (projectile.GetComponent<Rigidbody>() is Rigidbody pRb)
-            {
-                pRb.velocity = FirePoint.forward * WeaponStats.ProjectileSpeed;
-            }
-            
-            // Sync Gravity Multiplier
-            projectile.GravityMultiplier = WeaponStats.GravityMultiplier;
-            
+                // Set Projectile Physics
+                projectile.Speed = scaledSpeed;
+                projectile.SetGravity(gravity);
+                
+                // Set Behavior Type
+                if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
+                {
+                    projectile.BehaviorType = ProjectileType.Homing;
+                }
+                else
+                {
+                    projectile.BehaviorType = ProjectileType.Ballistic;
+                }
             }
             
             cooldownTimer = WeaponStats.Cooldown;

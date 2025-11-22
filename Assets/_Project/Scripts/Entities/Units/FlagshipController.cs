@@ -14,6 +14,13 @@ namespace NavalCommand.Entities.Units
         public float MaxTurnRate = 30f; // Degrees per second
         public float RudderSensitivity = 20f; // How fast rudder changes effect
 
+        [Header("Weapon Control")]
+        public bool EnableMainGuns = true;
+        public bool EnableAutocannons = true;
+        public bool EnableMissiles = true;
+        public bool EnableCIWS = true;
+        public bool EnableTorpedoes = true;
+
         [Header("Current Status")]
         public ThrottleState CurrentThrottle = ThrottleState.Stop;
         public RudderState CurrentRudder = RudderState.Center;
@@ -55,6 +62,32 @@ namespace NavalCommand.Entities.Units
                 InputReader.Instance.OnThrottleDown -= DecreaseThrottle;
                 InputReader.Instance.OnRudderLeft -= TurnLeft;
                 InputReader.Instance.OnRudderRight -= TurnRight;
+            }
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+            ApplyWeaponSettings();
+        }
+
+        private void ApplyWeaponSettings()
+        {
+            var weapons = GetComponentsInChildren<Components.WeaponController>();
+            foreach (var weapon in weapons)
+            {
+                if (weapon.WeaponStats == null) continue;
+
+                string wName = weapon.WeaponStats.name;
+                bool shouldEnable = true;
+
+                if (wName.Contains("FlagshipGun")) shouldEnable = EnableMainGuns;
+                else if (wName.Contains("Autocannon")) shouldEnable = EnableAutocannons;
+                else if (wName.Contains("Missile")) shouldEnable = EnableMissiles;
+                else if (wName.Contains("CIWS")) shouldEnable = EnableCIWS;
+                else if (wName.Contains("Torpedo")) shouldEnable = EnableTorpedoes;
+
+                weapon.IsWeaponEnabled = shouldEnable;
             }
         }
 

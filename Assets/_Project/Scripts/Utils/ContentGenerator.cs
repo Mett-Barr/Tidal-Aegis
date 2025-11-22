@@ -46,25 +46,25 @@ namespace NavalCommand.Utils
         {
             // Flagship Gun: Ballistic, Standard
             CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, 
-                BallisticsConfig.GetSpeed(WeaponType.FlagshipGun), 20f);
+                762f, 20f);
             
             // Missile: VLS -> Cruise (15m) -> Terminal
             CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, 
-                BallisticsConfig.GetSpeed(WeaponType.Missile), 50f, 
+                290f, 50f, 
                 cruiseHeight: 15f, terminalDist: 50f, vlsHeight: 20f, turnRate: 15f);
             
             // Torpedo: Underwater (-2m) -> Homing
             CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, 
-                BallisticsConfig.GetSpeed(WeaponType.Torpedo), 80f,
+                28f, 80f,
                 cruiseHeight: -2f, terminalDist: 30f, vlsHeight: 0f, turnRate: 1f);
             
             // Autocannon: Fast, Straight
             CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, 
-                BallisticsConfig.GetSpeed(WeaponType.Autocannon), 5f);
+                1100f, 5f);
             
             // CIWS: Very Fast, Straight
             CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, 
-                BallisticsConfig.GetSpeed(WeaponType.CIWS), 2f);
+                1100f, 2f);
         }
 
         private static void CreateProjectile(string name, Color color, ProjectileType type, float speed, float damage,
@@ -76,8 +76,6 @@ namespace NavalCommand.Utils
             GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
             if (existing != null)
             {
-                // We want to update existing prefabs with new scripts/values
-                // Simplest way is to delete and recreate for this generator tool
                 AssetDatabase.DeleteAsset(path);
             }
 
@@ -99,7 +97,7 @@ namespace NavalCommand.Utils
             proj.BehaviorType = type;
             proj.Speed = speed;
             proj.Damage = damage;
-            proj.GravityMultiplier = (type == ProjectileType.Ballistic || type == ProjectileType.Straight) ? 1f : 0f;
+            // proj.GravityMultiplier removed. Default gravity is handled by system or standard physics.
             
             // Advanced Settings
             proj.CruiseHeight = cruiseHeight;
@@ -117,28 +115,28 @@ namespace NavalCommand.Utils
 
         private static void GenerateWeaponStats()
         {
-            // Flagship Gun: Reliable, medium range
-            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, BallisticsConfig.GetRange(WeaponType.FlagshipGun), 3f, 30f, 
-                BallisticsConfig.GetSpeed(WeaponType.FlagshipGun), "Projectile_FlagshipGun");
+            // Flagship Gun: Reliable, medium range, slow turn
+            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, 150000f, 3f, 30f, 
+                762f, "Projectile_FlagshipGun", 30f);
             
-            // Missile: Long range, slow reload, high damage
-            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, BallisticsConfig.GetRange(WeaponType.Missile), 10f, 60f, 
-                BallisticsConfig.GetSpeed(WeaponType.Missile), "Projectile_Missile");
+            // Missile: Long range, slow reload, high damage, medium turn
+            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, 120000f, 10f, 60f, 
+                290f, "Projectile_Missile", 45f);
             
-            // Torpedo: Medium range, very slow reload, massive damage
-            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, BallisticsConfig.GetRange(WeaponType.Torpedo), 12f, 100f, 
-                BallisticsConfig.GetSpeed(WeaponType.Torpedo), "Projectile_Torpedo");
+            // Torpedo: Medium range, very slow reload, massive damage, slow turn
+            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, 10000f, 12f, 100f, 
+                28f, "Projectile_Torpedo", 30f);
             
-            // Autocannon: Short range, rapid fire, suppression
-            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, BallisticsConfig.GetRange(WeaponType.Autocannon), 0.2f, 5f, 
-                BallisticsConfig.GetSpeed(WeaponType.Autocannon), "Projectile_Autocannon");
+            // Autocannon: Short range, rapid fire, suppression, fast turn
+            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, 2500f, 0.2f, 5f, 
+                1100f, "Projectile_Autocannon", 120f);
             
-            // CIWS: Very short range, extreme fire rate, defense
-            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, BallisticsConfig.GetRange(WeaponType.CIWS), 0.05f, 2f, 
-                BallisticsConfig.GetSpeed(WeaponType.CIWS), "Projectile_CIWS");
+            // CIWS: Very short range, extreme fire rate, defense, very fast turn
+            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, 1500f, 0.05f, 2f, 
+                1100f, "Projectile_CIWS", 180f);
         }
 
-        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName)
+        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName, float rotationSpeed)
         {
             string path = $"Assets/_Project/Data/Weapons/{name}.asset";
             WeaponStatsSO so = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(path);
@@ -155,7 +153,8 @@ namespace NavalCommand.Utils
             so.Cooldown = cooldown;
             so.Damage = damage;
             so.ProjectileSpeed = speed;
-            so.GravityMultiplier = BallisticsConfig.GetGravityMultiplier(type);
+            so.GravityMultiplier = 1f; // Default to 1, System will override if needed
+            so.RotationSpeed = rotationSpeed;
             
             string projPath = $"Assets/_Project/Prefabs/Projectiles/{projectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);

@@ -27,7 +27,12 @@ namespace NavalCommand.Entities.Projectiles
 
         public Team GetTeam() => ProjectileTeam;
 
-        public UnitType GetUnitType() => UnitType.Missile;
+        public UnitType GetUnitType()
+        {
+            // Treat ALL projectiles as "Missiles" for targeting purposes.
+            // This prevents Anti-Surface missiles from locking onto bullets.
+            return UnitType.Missile;
+        }
 
         // ... (Existing Awake/Start/FixedUpdate/etc)
 
@@ -90,7 +95,16 @@ namespace NavalCommand.Entities.Projectiles
         public ProjectileType BehaviorType;
         public float Speed = 20f;
         public float Damage = 10f;
-        public float GravityMultiplier = 2f; // Extra gravity for better arc at low speeds
+        
+        private float gravityMultiplier = 1f; // Default to 1 (Standard Gravity)
+        private bool useExplicitGravity = false;
+        private float explicitGravity = 9.81f;
+
+        public void SetGravity(float gravity)
+        {
+            useExplicitGravity = true;
+            explicitGravity = gravity;
+        }
         
         [Header("Advanced Guidance")]
         public float CruiseHeight = 10f; // For Missiles (Sea-skimming) or Torpedoes (Depth)
@@ -141,11 +155,20 @@ namespace NavalCommand.Entities.Projectiles
             {
                 if (rb != null && rb.useGravity)
                 {
-                    rb.AddForce(Physics.gravity * (GravityMultiplier - 1f), ForceMode.Acceleration);
+                    // Check Collision BEFORE moving
+                    CheckCollision(rb.velocity.magnitude * Time.fixedDeltaTime);
+
+                    // Apply explicit gravity if set, otherwise standard
+                    float g = useExplicitGravity ? explicitGravity : Physics.gravity.y;
+                    
+                    rb.useGravity = false;
+                    rb.AddForce(Vector3.down * Mathf.Abs(g), ForceMode.Acceleration);
                 }
             }
             else if (BehaviorType == ProjectileType.Homing)
             {
+                // Homing handles its own movement in Update/FixedUpdate mix?
+                // Actually Homing calls HandleHomingBehavior which sets velocity.
                 HandleHomingBehavior();
             }
             else if (BehaviorType == ProjectileType.Straight)
@@ -154,7 +177,12 @@ namespace NavalCommand.Entities.Projectiles
                 // We allow gravity to affect them
                 if (rb != null && rb.useGravity)
                 {
-                    rb.AddForce(Physics.gravity * (GravityMultiplier - 1f), ForceMode.Acceleration);
+                    // Check Collision BEFORE moving
+                    CheckCollision(rb.velocity.magnitude * Time.fixedDeltaTime);
+
+                    float g = useExplicitGravity ? explicitGravity : Physics.gravity.y;
+                    rb.useGravity = false;
+                    rb.AddForce(Vector3.down * Mathf.Abs(g), ForceMode.Acceleration);
                 }
                 
                 // Align with velocity
@@ -227,6 +255,9 @@ namespace NavalCommand.Entities.Projectiles
             Quaternion targetRot = Quaternion.LookRotation(desiredDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.fixedDeltaTime * TurnRate);
             
+            // Check Collision BEFORE moving
+            CheckCollision(Speed * Time.fixedDeltaTime);
+
             // Apply Velocity
             rb.velocity = transform.forward * Speed;
         }
@@ -296,21 +327,31 @@ namespace NavalCommand.Entities.Projectiles
         private void OnTriggerEnter(Collider other)
         {
             if (isDespawning || !isInitialized) return;
+            OnHit(other.gameObject);
+        }
 
-            // Safety Delay: Ignore all collisions for first 0.2s to clear launcher
-            if (Time.time - launchTime < 0.2f) return;
+        private void OnHit(GameObject other)
+        {
+            if (isDespawning || !isInitialized) return;
 
+            // Safety Delay: Ignore collisions for first 0.05s to clear launcher,
+            // BUT allow hitting Enemies (Missiles) immediately.
+            // We rely on Physics.IgnoreCollision for the Owner, so this is just a backup.
+            float age = Time.time - launchTime;
+            
             // Ignore collision with owner AND its children
             if (Owner != null)
             {
-                if (other.gameObject == Owner || other.transform.IsChildOf(Owner.transform))
+                if (other == Owner || other.transform.IsChildOf(Owner.transform))
                 {
                     return;
                 }
             }
 
-            // Ignore collision with other projectiles
-            if (other.GetComponent<ProjectileBehavior>() != null) return;
+            // Ignore collision with other projectiles ONLY if they are friendly
+            // We need to allow hitting Enemy Projectiles (Missiles)
+            // The Friendly Fire check below handles the team logic.
+            // if (other.GetComponent<ProjectileBehavior>() != null) return;
 
             IDamageable damageable = other.GetComponent<IDamageable>();
             if (damageable != null)
@@ -321,7 +362,16 @@ namespace NavalCommand.Entities.Projectiles
                     return; // Ignore friendly units
                 }
 
-                // Debug.Log($"Projectile hit Enemy: {other.name}");
+                if (damageable.GetUnitType() == UnitType.Missile)
+                {
+                    float dist = (Owner != null) ? Vector3.Distance(transform.position, Owner.transform.position) : 0f;
+                    Debug.Log($"<color=green>[INTERCEPTION]</color> Intercepted {other.name} at distance: {dist:F1}m");
+                }
+                else
+                {
+                    Debug.Log($"[HIT] {name} hit {other.name}");
+                }
+                
                 damageable.TakeDamage(Damage);
             }
             else
@@ -341,6 +391,27 @@ namespace NavalCommand.Entities.Projectiles
             else
             {
                 Destroy(gameObject);
+            }
+        }
+
+        private void CheckCollision(float distance)
+        {
+            if (isDespawning) return;
+
+            // Use SphereCast for "Thick" bullets - better for hitting thin missiles
+            // Increased radius to 2.0f (Proximity Fuse) to catch "close misses"
+            float radius = 2.0f; 
+            
+            // Increase check distance slightly to account for target moving TOWARDS us
+            float checkDist = distance * 1.5f;
+
+            // Debug Visualization
+            // Debug.DrawLine(transform.position, transform.position + transform.forward * checkDist, Color.yellow, 0.1f);
+
+            if (Physics.SphereCast(transform.position, radius, transform.forward, out RaycastHit hit, checkDist, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Collide))
+            {
+                // We hit something!
+                OnHit(hit.collider.gameObject);
             }
         }
     }

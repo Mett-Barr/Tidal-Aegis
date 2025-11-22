@@ -53,10 +53,62 @@ namespace NavalCommand.Systems
 
             return results;
         }
+
+        // Optimization: Find closest target directly to avoid List allocation and double iteration
+        public Transform GetClosestTarget(Vector3 origin, float range, Team searchTeam, TargetCapability targetMask)
+        {
+            Transform closestTarget = null;
+            float closestDistSqr = range * range; // Start with max range squared
+
+            Vector2Int centerCell = GetCellPos(origin);
+            int cellRange = Mathf.CeilToInt(range / CellSize);
+
+            for (int x = -cellRange; x <= cellRange; x++)
+            {
+                for (int y = -cellRange; y <= cellRange; y++)
+                {
+                    Vector2Int checkCell = centerCell + new Vector2Int(x, y);
+                    
+                    if (grid.TryGetValue(checkCell, out List<IDamageable> cellContent))
+                    {
+                        // Use for-loop to avoid enumerator allocation
+                        for (int i = 0; i < cellContent.Count; i++)
+                        {
+                            var target = cellContent[i];
+                            
+                            // Basic filtering
+                            if (target.GetTeam() == searchTeam && !target.IsDead())
+                            {
+                                // Check Target Capability
+                                UnitType targetType = target.GetUnitType();
+                                bool isTargetable = false;
+
+                                if (targetType == UnitType.Surface && (targetMask & TargetCapability.Surface) != 0) isTargetable = true;
+                                if (targetType == UnitType.Air && (targetMask & TargetCapability.Air) != 0) isTargetable = true;
+                                if (targetType == UnitType.Missile && (targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+
+                                if (isTargetable)
+                                {
+                                    Transform tTrans = ((MonoBehaviour)target).transform;
+                                    float distSqr = (origin - tTrans.position).sqrMagnitude;
+                                    
+                                    if (distSqr < closestDistSqr)
+                                    {
+                                        closestDistSqr = distSqr;
+                                        closestTarget = tTrans;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return closestTarget;
+        }
         public static SpatialGridSystem Instance { get; private set; }
 
         [Header("Settings")]
-        public float CellSize = 2000f; // Increased from 50f to reduce iteration count for long-range weapons
+        public float CellSize = 20000f; // Increased to 20000f to handle GlobalRangeScale=1.0 (Huge ranges)
 
         // Dictionary mapping Grid Coordinates (x,y) to a List of Damageables in that cell
         private Dictionary<Vector2Int, List<IDamageable>> grid = new Dictionary<Vector2Int, List<IDamageable>>();
@@ -66,6 +118,13 @@ namespace NavalCommand.Systems
 
         private void Awake()
         {
+            // Safety Check: Prevent DivideByZero or Tiny CellSize causing infinite loops
+            if (CellSize < 100f)
+            {
+                Debug.LogWarning($"[SpatialGridSystem] CellSize {CellSize} is too small! Resetting to 20000f.");
+                CellSize = 20000f;
+            }
+
             if (Instance == null)
             {
                 Instance = this;
@@ -89,7 +148,7 @@ namespace NavalCommand.Systems
 
             grid[cell].Add(obj);
             objectCellMap[obj] = cell;
-            Debug.Log($"[SpatialGridSystem] Registered {((MonoBehaviour)obj).name} at {cell}. Team: {obj.GetTeam()}");
+            // Debug.Log($"[SpatialGridSystem] Registered {((MonoBehaviour)obj).name} at {cell}. Team: {obj.GetTeam()}");
         }
 
         public void Unregister(IDamageable obj)
@@ -101,7 +160,7 @@ namespace NavalCommand.Systems
                     grid[cell].Remove(obj);
                 }
                 objectCellMap.Remove(obj);
-                Debug.Log($"[SpatialGridSystem] Unregistered {((MonoBehaviour)obj).name} from {cell}");
+                // Debug.Log($"[SpatialGridSystem] Unregistered {((MonoBehaviour)obj).name} from {cell}");
             }
         }
 

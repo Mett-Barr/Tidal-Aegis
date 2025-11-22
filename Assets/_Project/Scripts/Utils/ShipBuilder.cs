@@ -8,6 +8,7 @@ namespace NavalCommand.Utils
     public class ShipBuilder : MonoBehaviour
     {
         [Header("Ship Dimensions")]
+        public WeightClass ShipClass = WeightClass.SuperHeavy; // Default to Super Flagship
         public Vector3 HullSize = new Vector3(4, 2, 12);
         public Vector3 BridgeSize = new Vector3(3, 2, 3);
         public Color ShipColor = Color.gray;
@@ -57,8 +58,8 @@ namespace NavalCommand.Utils
             containerObj.transform.localRotation = Quaternion.identity;
             visualContainer = containerObj.transform;
 
-            // 2. Create Modular Hull (Flagship = Heavy)
-            GameObject hullModule = CreateHullModule(WeightClass.Heavy);
+            // 2. Create Modular Hull
+            GameObject hullModule = CreateHullModule(ShipClass);
             hullModule.transform.SetParent(visualContainer);
             hullModule.transform.localPosition = Vector3.zero;
             hullModule.transform.localRotation = Quaternion.identity;
@@ -123,21 +124,7 @@ namespace NavalCommand.Utils
             }
 
             // 4. Add Components to Root if missing
-            if (GetComponent<FlagshipController>() == null)
-            {
-                gameObject.AddComponent<FlagshipController>();
-            }
-            if (GetComponent<Rigidbody>() == null)
-            {
-                var rb = gameObject.AddComponent<Rigidbody>();
-                rb.useGravity = false;
-                rb.drag = 1f;
-                rb.angularDrag = 1f;
-                rb.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
-            }
-            
             // Update Collider on Root
-            // We need to approximate the size based on the Heavy Hull
             var col = GetComponent<BoxCollider>();
             if (col == null)
             {
@@ -205,29 +192,29 @@ namespace NavalCommand.Utils
                 case WeaponType.FlagshipGun:
                     // Standard Turret
                     GameObject baseObj = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1.5f, 0.5f, 1.5f), Vector3.zero);
-                    baseObj.GetComponent<Renderer>().material.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = weaponColor;
+                    baseObj.GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
                     break;
 
                 case WeaponType.CIWS:
                     // Phalanx style
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.8f, 1.2f, 0.8f), new Vector3(0, 0.6f, 0)).GetComponent<Renderer>().material.color = Color.white; // CIWS often white
-                    CreatePrimitive(container, PrimitiveType.Sphere, new Vector3(0.7f, 0.7f, 0.7f), new Vector3(0, 1.2f, 0)).GetComponent<Renderer>().material.color = Color.white;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.2f, 1f, 0.2f), new Vector3(0, 1.0f, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = Color.black; // Barrel
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.8f, 1.2f, 0.8f), new Vector3(0, 0.6f, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.white; // CIWS often white
+                    CreatePrimitive(container, PrimitiveType.Sphere, new Vector3(0.7f, 0.7f, 0.7f), new Vector3(0, 1.2f, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.white;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.2f, 1f, 0.2f), new Vector3(0, 1.0f, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black; // Barrel
                     break;
 
                 case WeaponType.Missile:
                     // Box Launcher
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1.2f, 0.4f, 1.2f), Vector3.zero).GetComponent<Renderer>().material.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1f, 0.8f, 1.5f), new Vector3(0, 0.5f, 0), new Vector3(-15, 0, 0)).GetComponent<Renderer>().material.color = weaponColor;
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1.2f, 0.4f, 1.2f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1f, 0.8f, 1.5f), new Vector3(0, 0.5f, 0), new Vector3(-15, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
                     break;
 
                 case WeaponType.Torpedo:
                     // Triple Tube
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero).GetComponent<Renderer>().material.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = Color.black;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = Color.black;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().material.color = Color.black;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
                     break;
             }
 
@@ -333,10 +320,11 @@ namespace NavalCommand.Utils
             
             MeshFilter mf = hullMeshObj.AddComponent<MeshFilter>();
             MeshRenderer mr = hullMeshObj.AddComponent<MeshRenderer>();
-            mr.material = new Material(Shader.Find("Standard"));
-            mr.material.color = hullColor;
+            mr.sharedMaterial = new Material(GetShader());
+            mr.sharedMaterial.color = hullColor;
 
-            mf.mesh = GenerateHexagonalHull(W, H_hull, L);
+            // CRITICAL: Use sharedMesh for Asset assignment
+            mf.sharedMesh = GenerateHexagonalHull(W, H_hull, L);
 
             // 2. Place Components
             // All components sit on Main Deck (Y=0)
@@ -362,7 +350,7 @@ namespace NavalCommand.Utils
                 // Create Base (The "Hardpoint")
                 GameObject mountBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, baseHeight, mountDiameter), new Vector3(x, baseHeight / 2f, z));
                 mountBase.name = $"MountPoint_{mountIndex}";
-                mountBase.GetComponent<Renderer>().material.color = deckColor;
+                mountBase.GetComponent<Renderer>().sharedMaterial.color = deckColor;
 
                 // Rotate Side Mounts
                 if (normPos.x < -0.1f) // Port
@@ -387,14 +375,14 @@ namespace NavalCommand.Utils
             // Center Y = H_super / 2.
             GameObject island = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(islandWidth, H_super, islandLength), new Vector3(0, H_super / 2f, islandZ));
             island.name = "Island";
-            island.GetComponent<Renderer>().material.color = hullColor;
+            island.GetComponent<Renderer>().sharedMaterial.color = hullColor;
             
             // Island Detail (Bridge Window / Mast)
             // Mast top at H_super (already there). 
             // Let's add a small mast extending slightly higher to mark it as highest point.
             GameObject mast = CreatePrimitive(island, PrimitiveType.Cylinder, new Vector3(0.5f, 1.0f, 0.5f), new Vector3(0, 0.5f + 0.2f, 0)); // Relative to island center
             mast.transform.localPosition = new Vector3(0, 0.5f + 0.2f, 0); // On top of island block
-            mast.GetComponent<Renderer>().material.color = Color.black;
+            mast.GetComponent<Renderer>().sharedMaterial.color = Color.black;
 
             return container;
         }
@@ -482,7 +470,34 @@ namespace NavalCommand.Utils
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateNormals();
             
+#if UNITY_EDITOR
+            // Save Mesh as Asset to persist in Prefabs
+            string folderPath = "Assets/_Project/Generated/Meshes";
+            if (!System.IO.Directory.Exists(folderPath))
+            {
+                System.IO.Directory.CreateDirectory(folderPath);
+            }
+
+            string meshName = $"HullMesh_{System.DateTime.Now.Ticks}";
+            string assetPath = $"{folderPath}/{meshName}.asset";
+            
+            UnityEditor.AssetDatabase.CreateAsset(mesh, assetPath);
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.AssetDatabase.Refresh(); // FORCE REFRESH
+            
+            Debug.Log($"[ShipBuilder] Saved Hull Mesh to {assetPath}");
+            
+            // CRITICAL: Return the ASSET, not the runtime mesh
+            Mesh loadedMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+            if (loadedMesh == null)
+            {
+                Debug.LogError("[ShipBuilder] Failed to load saved mesh! Returning runtime mesh.");
+                return mesh;
+            }
+            return loadedMesh;
+#else
             return mesh;
+#endif
         }
 
         private GameObject CreatePrimitive(GameObject parent, PrimitiveType type, Vector3 scale, Vector3 localPos, Vector3 localRot = default)
@@ -499,6 +514,14 @@ namespace NavalCommand.Utils
             }
 
             return obj;
+        }
+
+        private Shader GetShader()
+        {
+            Shader s = Shader.Find("Universal Render Pipeline/Lit");
+            if (s == null) s = Shader.Find("Universal Render Pipeline/Simple Lit");
+            if (s == null) s = Shader.Find("Standard");
+            return s;
         }
     }
 }

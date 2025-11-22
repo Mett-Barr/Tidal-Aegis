@@ -15,12 +15,13 @@ MonoBehaviour:
   DisplayName: Flagship Gun
   Type: 0
   TargetType: 1
-  Range: 15000
+  Range: 150000
   Cooldown: 3
   Damage: 30
-  ProjectileSpeed: 152.40001
-  GravityMultiplier: 0.15783732
-  ProjectilePrefab: {fileID: 1833162608623075312, guid: ac9dcf0a023c1544ab7eaaff17903808,
+  ProjectileSpeed: 762
+  GravityMultiplier: 1
+  RotationSpeed: 30
+  ProjectilePrefab: {fileID: 7530023543792375002, guid: ac9dcf0a023c1544ab7eaaff17903808,
     type: 3}
   TargetMask:
     serializedVersion: 2

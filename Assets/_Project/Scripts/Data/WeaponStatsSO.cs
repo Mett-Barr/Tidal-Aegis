@@ -35,6 +35,7 @@ namespace NavalCommand.Data
         public float Damage;
         public float ProjectileSpeed = 20f;
         public float GravityMultiplier = 1f;
+        public float RotationSpeed = 30f; // Degrees per second
 
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;

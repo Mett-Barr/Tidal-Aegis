@@ -15,12 +15,13 @@ MonoBehaviour:
   DisplayName: Torpedo Tube
   Type: 2
   TargetType: 1
-  Range: 1000
+  Range: 10000
   Cooldown: 12
   Damage: 100
-  ProjectileSpeed: 5.6
-  GravityMultiplier: 0
-  ProjectilePrefab: {fileID: 7836842478313700251, guid: 4399fc60eecf23645b085487d030e300,
+  ProjectileSpeed: 28
+  GravityMultiplier: 1
+  RotationSpeed: 30
+  ProjectilePrefab: {fileID: 2100834728451720693, guid: 4399fc60eecf23645b085487d030e300,
     type: 3}
   TargetMask:
     serializedVersion: 2

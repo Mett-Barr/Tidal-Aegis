@@ -7,8 +7,8 @@ namespace NavalCommand.Systems
     {
         [Header("Follow Settings")]
         public Transform Target;
-        public float Distance = 50f;
-        public float Angle = 60f;
+        public float Distance = 200f;
+        public float Angle = 50f;
         public float SmoothSpeed = 0.05f; // Faster tracking to stay behind
 
         private Vector3 currentVelocity; // For SmoothDamp
