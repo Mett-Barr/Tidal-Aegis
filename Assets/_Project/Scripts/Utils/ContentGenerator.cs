@@ -45,29 +45,29 @@ namespace NavalCommand.Utils
         private static void GenerateProjectiles()
         {
             // Flagship Gun: Ballistic, Standard
-            CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, 
-                762f, 20f);
+            CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, "Shell",
+                WeaponConstants.FlagshipGun.ProjectileSpeed, WeaponConstants.FlagshipGun.Damage);
             
             // Missile: VLS -> Cruise (15m) -> Terminal
-            CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, 
-                290f, 50f, 
+            CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, "Missile",
+                WeaponConstants.Missile.ProjectileSpeed, WeaponConstants.Missile.Damage, 
                 cruiseHeight: 15f, terminalDist: 50f, vlsHeight: 20f, turnRate: 15f);
             
             // Torpedo: Underwater (-2m) -> Homing
-            CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, 
-                28f, 80f,
+            CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, "Torpedo",
+                WeaponConstants.Torpedo.ProjectileSpeed, WeaponConstants.Torpedo.Damage,
                 cruiseHeight: -2f, terminalDist: 30f, vlsHeight: 0f, turnRate: 1f);
             
             // Autocannon: Fast, Straight
-            CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, 
-                1100f, 5f);
+            CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, "Tracer",
+                WeaponConstants.Autocannon.ProjectileSpeed, WeaponConstants.Autocannon.Damage);
             
             // CIWS: Very Fast, Straight
-            CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, 
-                1100f, 2f);
+            CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, "Tracer_Small",
+                WeaponConstants.CIWS.ProjectileSpeed, WeaponConstants.CIWS.Damage);
         }
 
-        private static void CreateProjectile(string name, Color color, ProjectileType type, float speed, float damage,
+        private static void CreateProjectile(string name, Color color, ProjectileType type, string visualStyle, float speed, float damage,
             float cruiseHeight = 0f, float terminalDist = 0f, float vlsHeight = 0f, float turnRate = 0f)
         {
             string path = $"Assets/_Project/Prefabs/Projectiles/{name}.prefab";
@@ -79,13 +79,10 @@ namespace NavalCommand.Utils
                 AssetDatabase.DeleteAsset(path);
             }
 
-            GameObject go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            go.name = name;
-            go.transform.localScale = Vector3.one * 0.5f;
-
-            var renderer = go.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            renderer.sharedMaterial.color = color;
+            GameObject go = new GameObject(name);
+            
+            // Create Model
+            CreateProjectileModel(go, visualStyle, color);
 
             // Physics
             var rb = go.AddComponent<Rigidbody>();
@@ -97,7 +94,6 @@ namespace NavalCommand.Utils
             proj.BehaviorType = type;
             proj.Speed = speed;
             proj.Damage = damage;
-            // proj.GravityMultiplier removed. Default gravity is handled by system or standard physics.
             
             // Advanced Settings
             proj.CruiseHeight = cruiseHeight;
@@ -105,12 +101,110 @@ namespace NavalCommand.Utils
             proj.VerticalLaunchHeight = vlsHeight;
             proj.TurnRate = turnRate;
 
-            // Collider
-            var col = go.GetComponent<SphereCollider>();
-            col.isTrigger = true;
+            // Collider (Approximate based on style)
+            if (visualStyle.Contains("Tracer"))
+            {
+                var col = go.AddComponent<CapsuleCollider>();
+                col.direction = 2; // Z-axis
+                col.radius = 0.1f;
+                col.height = 1f;
+                col.isTrigger = true;
+            }
+            else
+            {
+                var col = go.AddComponent<BoxCollider>();
+                col.size = new Vector3(0.5f, 0.5f, 2f);
+                col.isTrigger = true;
+            }
 
             PrefabUtility.SaveAsPrefabAsset(go, path);
             DestroyImmediate(go);
+        }
+
+        private static void CreateProjectileModel(GameObject parent, string style, Color color)
+        {
+            // 1. Create and Save Material
+            string matPath = $"Assets/_Project/Generated/Materials/ProjectileMat_{style}.mat";
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            
+            if (mat == null)
+            {
+                // Ensure directory exists
+                string dir = "Assets/_Project/Generated/Materials";
+                if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
+
+                // Create new material
+                mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                if (mat.shader == null) mat.shader = Shader.Find("Standard"); // Fallback
+
+                mat.color = color;
+                if (style.Contains("Tracer"))
+                {
+                    mat.EnableKeyword("_EMISSION");
+                    mat.SetColor("_EmissionColor", color * 2f);
+                    mat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+                }
+                
+                AssetDatabase.CreateAsset(mat, matPath);
+            }
+            else
+            {
+                // Update existing material color just in case
+                mat.color = color;
+                if (style.Contains("Tracer"))
+                {
+                    mat.SetColor("_EmissionColor", color * 2f);
+                }
+                EditorUtility.SetDirty(mat);
+            }
+
+            GameObject model = new GameObject("Model");
+            model.transform.SetParent(parent.transform);
+            model.transform.localPosition = Vector3.zero;
+            model.transform.localRotation = Quaternion.identity;
+
+            switch (style)
+            {
+                case "Shell": // Large Caliber Shell
+                    CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.4f, 0.8f, 0.4f), new Vector3(0, 0, 0), new Vector3(90, 0, 0), mat);
+                    CreatePrimitive(model, PrimitiveType.Sphere, new Vector3(0.38f, 0.4f, 0.4f), new Vector3(0, 0, 0.8f), Vector3.zero, mat); // Nose
+                    break;
+
+                case "Missile": // VLS Missile
+                    CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.3f, 1.5f, 0.3f), new Vector3(0, 0, 0), new Vector3(90, 0, 0), mat); // Body
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.28f, 0.5f, 0.28f), new Vector3(0, 0, 1.5f), new Vector3(90, 0, 0), mat); // Nose
+                    // Fins
+                    CreatePrimitive(model, PrimitiveType.Cube, new Vector3(1.2f, 0.05f, 0.4f), new Vector3(0, 0, -1.2f), Vector3.zero, mat);
+                    CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.05f, 1.2f, 0.4f), new Vector3(0, 0, -1.2f), Vector3.zero, mat);
+                    break;
+
+                case "Torpedo": // Underwater Torpedo
+                    CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.4f, 2f, 0.4f), new Vector3(0, 0, 0), new Vector3(90, 0, 0), mat); // Body
+                    CreatePrimitive(model, PrimitiveType.Sphere, new Vector3(0.4f, 0.4f, 0.4f), new Vector3(0, 0, 2f), Vector3.zero, mat); // Nose
+                    // Propeller/Fins
+                    CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.8f, 0.05f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
+                    CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.05f, 0.8f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
+                    break;
+
+                case "Tracer": // Autocannon
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.15f, 1f, 0.15f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    break;
+
+                case "Tracer_Small": // CIWS
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.08f, 0.6f, 0.08f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    break;
+            }
+        }
+
+        private static void CreatePrimitive(GameObject parent, PrimitiveType type, Vector3 scale, Vector3 pos, Vector3 rot, Material mat)
+        {
+            GameObject obj = GameObject.CreatePrimitive(type);
+            obj.transform.SetParent(parent.transform);
+            obj.transform.localPosition = pos;
+            obj.transform.localRotation = Quaternion.Euler(rot);
+            obj.transform.localScale = scale;
+            obj.GetComponent<MeshRenderer>().sharedMaterial = mat;
+            DestroyImmediate(obj.GetComponent<Collider>()); // Remove physics from visual parts
         }
 
         private static void GenerateWeaponStats()

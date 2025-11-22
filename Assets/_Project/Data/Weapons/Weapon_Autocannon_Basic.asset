@@ -22,7 +22,7 @@ MonoBehaviour:
   GravityMultiplier: 1
   RotationSpeed: 120
   Spread: 0.8
-  ProjectilePrefab: {fileID: 4883688475272840739, guid: 92c3ff537503e814eb111d674bca27a0,
+  ProjectilePrefab: {fileID: 6147475867706472867, guid: 92c3ff537503e814eb111d674bca27a0,
     type: 3}
   TargetMask:
     serializedVersion: 2
