@@ -320,8 +320,25 @@ namespace NavalCommand.Utils
             
             MeshFilter mf = hullMeshObj.AddComponent<MeshFilter>();
             MeshRenderer mr = hullMeshObj.AddComponent<MeshRenderer>();
-            mr.sharedMaterial = new Material(GetShader());
-            mr.sharedMaterial.color = hullColor;
+
+            // Create and Save Material
+            Material hullMat = new Material(GetShader());
+            hullMat.color = hullColor;
+            
+#if UNITY_EDITOR
+            string matFolder = "Assets/_Project/Generated/Materials";
+            if (!System.IO.Directory.Exists(matFolder)) System.IO.Directory.CreateDirectory(matFolder);
+            
+            string matPath = $"{matFolder}/HullMat_{System.DateTime.Now.Ticks}.mat";
+            UnityEditor.AssetDatabase.CreateAsset(hullMat, matPath);
+            UnityEditor.AssetDatabase.SaveAssets();
+            UnityEditor.AssetDatabase.Refresh();
+            
+            hullMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            Debug.Log($"[ShipBuilder] Saved Hull Material to {matPath}");
+#endif
+
+            mr.sharedMaterial = hullMat;
 
             // CRITICAL: Use sharedMesh for Asset assignment
             mf.sharedMesh = GenerateHexagonalHull(W, H_hull, L);
