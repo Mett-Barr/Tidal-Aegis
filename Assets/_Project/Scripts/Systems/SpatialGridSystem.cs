@@ -9,7 +9,7 @@ namespace NavalCommand.Systems
     {
         // ... (Existing code)
 
-        public List<IDamageable> GetTargetsInRange(Vector3 origin, float range, Team searchTeam, TargetCapability targetMask = TargetCapability.Surface)
+        public List<IDamageable> GetTargetsInRange(Vector3 origin, float range, Team searchTeam, TargetCapability targetMask = TargetCapability.Ship)
         {
             List<IDamageable> results = new List<IDamageable>();
             Vector2Int centerCell = GetCellPos(origin);
@@ -33,9 +33,24 @@ namespace NavalCommand.Systems
                                 UnitType targetType = target.GetUnitType();
                                 bool isTargetable = false;
 
-                                if (targetType == UnitType.Surface && (targetMask & TargetCapability.Surface) != 0) isTargetable = true;
-                                if (targetType == UnitType.Air && (targetMask & TargetCapability.Air) != 0) isTargetable = true;
-                                if (targetType == UnitType.Missile && (targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+                                switch (targetType)
+                                {
+                                    case UnitType.Ship:
+                                        if ((targetMask & TargetCapability.Ship) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Aircraft:
+                                        if ((targetMask & TargetCapability.Aircraft) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Missile:
+                                        if ((targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Torpedo:
+                                        if ((targetMask & TargetCapability.Torpedo) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Shell:
+                                        if ((targetMask & TargetCapability.Shell) != 0) isTargetable = true;
+                                        break;
+                                }
 
                                 if (isTargetable)
                                 {
@@ -83,9 +98,24 @@ namespace NavalCommand.Systems
                                 UnitType targetType = target.GetUnitType();
                                 bool isTargetable = false;
 
-                                if (targetType == UnitType.Surface && (targetMask & TargetCapability.Surface) != 0) isTargetable = true;
-                                if (targetType == UnitType.Air && (targetMask & TargetCapability.Air) != 0) isTargetable = true;
-                                if (targetType == UnitType.Missile && (targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+                                switch (targetType)
+                                {
+                                    case UnitType.Ship:
+                                        if ((targetMask & TargetCapability.Ship) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Aircraft:
+                                        if ((targetMask & TargetCapability.Aircraft) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Missile:
+                                        if ((targetMask & TargetCapability.Missile) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Torpedo:
+                                        if ((targetMask & TargetCapability.Torpedo) != 0) isTargetable = true;
+                                        break;
+                                    case UnitType.Shell:
+                                        if ((targetMask & TargetCapability.Shell) != 0) isTargetable = true;
+                                        break;
+                                }
 
                                 if (isTargetable)
                                 {

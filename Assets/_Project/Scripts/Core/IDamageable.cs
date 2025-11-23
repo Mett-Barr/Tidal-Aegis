@@ -10,9 +10,11 @@ namespace NavalCommand.Core
 
     public enum UnitType
     {
-        Surface,
-        Air,
-        Missile
+        Ship,       // Surface Ships
+        Aircraft,   // Planes, Helicopters
+        Missile,    // Guided Missiles
+        Torpedo,    // Underwater Guided
+        Shell       // Unguided Projectiles
     }
 
     public interface IDamageable

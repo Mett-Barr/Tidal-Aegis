@@ -130,6 +130,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1452650107517165379, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: m_Name
+      value: Player Flagship
+      objectReference: {fileID: 0}
     - target: {fileID: 3037756036754114261, guid: aefc86ab16943af4785c9e5b9f4e14ec,
         type: 3}
       propertyPath: m_Name
@@ -139,6 +144,31 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Player Flagship
+      objectReference: {fileID: 0}
+    - target: {fileID: 3532326696117654277, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: EnableCIWS
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3532326696117654277, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: EnableMainGuns
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3532326696117654277, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: EnableMissiles
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3532326696117654277, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: EnableTorpedoes
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3532326696117654277, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: EnableAutocannons
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3783701470092179929, guid: aefc86ab16943af4785c9e5b9f4e14ec,
         type: 3}
@@ -210,7 +240,17 @@ PrefabInstance:
       propertyPath: EnableAutocannons
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4296140903928852685, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: m_Name
+      value: Player Flagship
+      objectReference: {fileID: 0}
     - target: {fileID: 5829104601639276787, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+        type: 3}
+      propertyPath: m_Name
+      value: Player Flagship
+      objectReference: {fileID: 0}
+    - target: {fileID: 6172642693716794013, guid: aefc86ab16943af4785c9e5b9f4e14ec,
         type: 3}
       propertyPath: m_Name
       value: Player Flagship
@@ -245,18 +285,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: aefc86ab16943af4785c9e5b9f4e14ec, type: 3}
---- !u!114 &98274717 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8512586519809151550, guid: aefc86ab16943af4785c9e5b9f4e14ec,
-    type: 3}
-  m_PrefabInstance: {fileID: 98274716}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8304bf3ac57e98940ae4d6b27d2714dc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -891,12 +919,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Target: {fileID: 0}
-  Distance: 222
+  Distance: 300
   Angle: 60
   SmoothSpeed: 0.125
   MinDistance: 20
   MaxDistance: 1000
-  ZoomSensitivity: 5
+  ZoomSensitivity: 50
 --- !u!114 &1081420017
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -910,17 +938,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EnemyPrefabs:
-  - {fileID: 3601845747538996631, guid: f60306ea0d66867439d721c69d26b6b8, type: 3}
+  - {fileID: 2986053782318313019, guid: f60306ea0d66867439d721c69d26b6b8, type: 3}
   - {fileID: 4705041527745159436, guid: ccbe40513cd46c94db446cceb819b958, type: 3}
   - {fileID: 4176488181651666397, guid: d1231678771f42e498dbe0b7f92528f7, type: 3}
   - {fileID: 6668454100552217347, guid: a872afc74a6308148bcf64c381eec678, type: 3}
   - {fileID: 3353526883933245832, guid: cda9bb2af61cc914982b81f8d23ad756, type: 3}
   - {fileID: 7840220041619838560, guid: 923570993628e7f45b766b51f3ed7580, type: 3}
-  SpawnRadius: 200
-  SpawnInterval: 3
+  SpawnRadius: 300
+  SpawnInterval: 1
+  MaxEnemies: 3
   Mode: 1
-  SpecificEnemyIndex: 0
-  SpecificPrefabName: Ship_Light_Missile
+  SpecificEnemyIndex: 2
+  SpecificPrefabName: 
 --- !u!114 &1081420018
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -971,8 +1000,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CurrentState: 0
-  PlayerFlagship: {fileID: 98274717}
-  PlayerPrefab: {fileID: 7591996215328597508, guid: aefc86ab16943af4785c9e5b9f4e14ec,
+  PlayerFlagship: {fileID: 0}
+  PlayerPrefab: {fileID: 4296140903928852685, guid: aefc86ab16943af4785c9e5b9f4e14ec,
     type: 3}
 --- !u!4 &1081420022
 Transform:

@@ -15,6 +15,9 @@ MonoBehaviour:
   DisplayName: Flagship Gun
   Type: 0
   TargetType: 1
+  ImpactProfile:
+    Category: 1
+    Size: 2
   _baseRange: 150000
   _overrideRange: 0
   _useOverrideRange: 0
@@ -36,7 +39,7 @@ MonoBehaviour:
   _baseSpread: 0.1
   _overrideSpread: 0
   _useOverrideSpread: 0
-  ProjectilePrefab: {fileID: 4795629031025464403, guid: ac9dcf0a023c1544ab7eaaff17903808,
+  ProjectilePrefab: {fileID: 4450857830011105896, guid: ac9dcf0a023c1544ab7eaaff17903808,
     type: 3}
   TargetMask:
     serializedVersion: 2

@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c6a70f53c3d7d14b93393875b4fbaec, type: 3}
+  m_Name: DefaultVFXLibrary
+  m_EditorClassIdentifier: 
+  Rules:
+  - AnyCategory: 1
+    Category: 0
+    AnySize: 1
+    Size: 0
+    AnySurface: 0
+    Surface: 1
+    VFXPrefab: {fileID: 7715448170319459455, guid: 04a2a30acff53cf44a83980ab2748195,
+      type: 3}
+    SFXClip: {fileID: 0}
+    ScaleMultiplier: 1
+    Priority: 10
+  - AnyCategory: 0
+    Category: 1
+    AnySize: 1
+    Size: 0
+    AnySurface: 1
+    Surface: 0
+    VFXPrefab: {fileID: 4798553718683968901, guid: ce472189830b5074ba133e32a8230033,
+      type: 3}
+    SFXClip: {fileID: 0}
+    ScaleMultiplier: 1
+    Priority: 5
+  - AnyCategory: 0
+    Category: 0
+    AnySize: 1
+    Size: 0
+    AnySurface: 0
+    Surface: 2
+    VFXPrefab: {fileID: 3232187085005983289, guid: 0771f636d3d11284eb2308c17f77b426,
+      type: 3}
+    SFXClip: {fileID: 0}
+    ScaleMultiplier: 1
+    Priority: 5
+  FallbackVFX: {fileID: 0}
+  FallbackSFX: {fileID: 0}

@@ -58,7 +58,7 @@ namespace NavalCommand.Utils
                 if (SpatialGridSystem.Instance != null)
                 {
                     // We can't easily check internal dictionary, but we can check if we are found
-                    var targets = SpatialGridSystem.Instance.GetTargetsInRange(transform.position, 100f, unit.UnitTeam == Core.Team.Player ? Core.Team.Enemy : Core.Team.Player, TargetCapability.Surface | TargetCapability.Air | TargetCapability.Missile);
+                    var targets = SpatialGridSystem.Instance.GetTargetsInRange(transform.position, 100f, unit.UnitTeam == Core.Team.Player ? Core.Team.Enemy : Core.Team.Player, TargetCapability.Ship | TargetCapability.Aircraft | TargetCapability.Missile);
                     status += $"Grid Check: Found {targets.Count} enemies nearby.\n";
                 }
                 else

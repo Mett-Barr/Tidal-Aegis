@@ -7,7 +7,7 @@ using NavalCommand.Data;
 
 namespace NavalCommand.Entities.Projectiles
 {
-    public class ProjectileBehavior : MonoBehaviour, IDamageable
+    public class ProjectileBehavior : MonoBehaviour, IDamageable, IPredictionProvider
     {
         [Header("Identity")]
         public Team ProjectileTeam;
@@ -31,6 +31,7 @@ namespace NavalCommand.Entities.Projectiles
 
         public Transform Target;
         public GameObject Owner;
+        public NavalCommand.Systems.VFX.ImpactProfile ImpactProfile;
 
         private Rigidbody rb;
         private bool isInitialized = false;
@@ -44,7 +45,20 @@ namespace NavalCommand.Entities.Projectiles
 
         public bool IsDead() => isDespawning;
         public Team GetTeam() => ProjectileTeam;
-        public UnitType GetUnitType() => UnitType.Missile;
+        
+        public UnitType GetUnitType()
+        {
+            switch (SourceWeaponType)
+            {
+                case WeaponType.Missile:
+                    return UnitType.Missile;
+                case WeaponType.Torpedo:
+                    return UnitType.Torpedo;
+                default:
+                    return UnitType.Shell; // Unguided Projectiles
+            }
+        }
+
         public Vector3 Acceleration => _currentState.Acceleration; // Expose for Prediction
         public Vector3 Velocity => _currentState.Velocity; // Expose for Prediction
 
@@ -98,11 +112,19 @@ namespace NavalCommand.Entities.Projectiles
             }
         }
 
-        public void Initialize(Vector3 velocity, Team team, WeaponType weaponType)
+        // Custom Gravity for Ballistics
+        private Vector3? _customGravity;
+
+        public void Initialize(Vector3 velocity, Team team, WeaponType weaponType, float? customGravityY = null)
         {
             ProjectileTeam = team;
             SourceWeaponType = weaponType;
             
+            if (customGravityY.HasValue)
+            {
+                _customGravity = new Vector3(0, customGravityY.Value, 0);
+            }
+
             // Resolve Logic Delegate
             _movementLogic = ResolveLogic(MovementLogicName);
             
@@ -112,13 +134,35 @@ namespace NavalCommand.Entities.Projectiles
             // Pack Custom Data (X: Cruise, Y: Terminal, Z: VLS)
             _currentState.CustomData = new Vector3(CruiseHeight, TerminalHomingDistance, VerticalLaunchHeight);
 
-            // VLS Override: If this is a VLS missile, force it to launch UP regardless of turret aim
-            if (MovementLogicName == "GuidedMissile" && VerticalLaunchHeight > 1.0f)
+            if (MovementLogicName == "GuidedMissile")
             {
-                _currentState.Velocity = Vector3.up * velocity.magnitude;
-                _currentState.Rotation = Quaternion.LookRotation(Vector3.up);
+                if (CruiseHeight < 1f) _currentState.CustomData.x = 15f; // Fallback
+                if (TerminalHomingDistance < 1f) _currentState.CustomData.y = 50f; // Fallback
+                if (VerticalLaunchHeight < 1f) _currentState.CustomData.z = 20f; // Fallback
+                
+                // Enforce Cruise >= VLS to prevent "Diving" behavior
+                if (_currentState.CustomData.x < _currentState.CustomData.z)
+                {
+                    _currentState.CustomData.x = _currentState.CustomData.z;
+                }
             }
 
+            // VLS Override: If this is a VLS missile, force it to launch UP regardless of turret aim
+            // DISABLED: This was previously broken (dead code) and enabling it caused regression.
+            // if (MovementLogicName == "GuidedMissile" && VerticalLaunchHeight > 1.0f)
+            // {
+            //     _currentState.Velocity = Vector3.up * velocity.magnitude;
+            //     _currentState.Rotation = Quaternion.LookRotation(Vector3.up);
+            // }
+
+            // Clear Trail Renderer to prevent "streaks" from pooling
+            var trail = GetComponent<TrailRenderer>();
+            if (trail != null)
+            {
+                trail.Clear();
+            }
+
+            _lifetimeTimer = 0f;
             isInitialized = true;
         }
 
@@ -145,7 +189,7 @@ namespace NavalCommand.Entities.Projectiles
             // 1. Build Context
             MovementContext ctx = new MovementContext
             {
-                Gravity = Physics.gravity,
+                Gravity = _customGravity ?? Physics.gravity,
                 TargetState = null,
                 TargetPrediction = null
             };
@@ -190,6 +234,31 @@ namespace NavalCommand.Entities.Projectiles
             
             // Water Check
             CheckWaterEntry();
+            
+            // Lifetime & Distance Check
+            CheckLifetime(dt);
+            CheckDistance();
+        }
+
+        private float _lifetimeTimer;
+        private const float MAX_LIFETIME = 30f;
+        private const float MAX_DISTANCE = 20000f; // 20km
+
+        private void CheckLifetime(float dt)
+        {
+            _lifetimeTimer += dt;
+            if (_lifetimeTimer > MAX_LIFETIME)
+            {
+                Despawn();
+            }
+        }
+
+        private void CheckDistance()
+        {
+            if (transform.position.magnitude > MAX_DISTANCE)
+            {
+                Despawn();
+            }
         }
 
         private void CheckCollision(float distance)
@@ -214,7 +283,19 @@ namespace NavalCommand.Entities.Projectiles
             
             if (!isTorpedo && transform.position.y < -1f)
             {
-                CreateSplash();
+                // VFX
+                if (NavalCommand.Systems.VFX.VFXManager.Instance != null)
+                {
+                    var context = new NavalCommand.Systems.VFX.HitContext(
+                        ImpactProfile,
+                        NavalCommand.Systems.VFX.SurfaceType.Water,
+                        transform.position,
+                        Vector3.up
+                    );
+                    NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(context);
+                    Debug.Log($"[ProjectileBehavior] Spawning Water Splash at {transform.position}");
+                }
+
                 Despawn();
             }
         }
@@ -242,27 +323,21 @@ namespace NavalCommand.Entities.Projectiles
                 }
             }
             
-            CreateExplosion();
-            Despawn();
-        }
+            // VFX
+            if (NavalCommand.Systems.VFX.VFXManager.Instance != null)
+            {
+                var surface = NavalCommand.Systems.VFX.SurfaceResolver.Resolve(hit.collider);
+                var context = new NavalCommand.Systems.VFX.HitContext(
+                    ImpactProfile,
+                    surface,
+                    hit.point,
+                    hit.normal
+                );
+                NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(context);
+                Debug.Log($"[ProjectileBehavior] Spawning Impact VFX ({ImpactProfile} on {surface}) at {hit.point}");
+            }
 
-        private void CreateExplosion()
-        {
-            // TODO: Pool explosions
-            GameObject explosion = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            explosion.transform.position = transform.position;
-            explosion.transform.localScale = Vector3.one * 2f;
-            explosion.GetComponent<Renderer>().material.color = Color.red;
-            
-            // Remove Collider so it doesn't block other projectiles
-            Destroy(explosion.GetComponent<Collider>());
-            
-            Destroy(explosion, 0.5f);
-        }
-        
-        private void CreateSplash()
-        {
-            // TODO: Pool splashes
+            Despawn();
         }
 
         private void Despawn()
@@ -278,6 +353,53 @@ namespace NavalCommand.Entities.Projectiles
             {
                 Destroy(gameObject);
             }
+        }
+
+        // IPredictionProvider Implementation
+        public ITargetPredictor GetPredictor(Vector3 observerPos, Vector3 observerVel)
+        {
+            // Check if we are targeting the observer (or their ship root)
+            bool isTargetingObserver = false;
+            if (Target != null)
+            {
+                // Simple check: Is the target root the same as the observer's root?
+                // Note: observerPos might be a turret, so we can't just compare positions.
+                // Ideally, we'd compare root transforms, but we only have position here.
+                // However, for this context, checking distance to target is a reasonable heuristic 
+                // if we don't have the observer's transform.
+                // BETTER: The observer should pass their root transform if possible, but the interface takes pos/vel.
+                // Let's assume if the target is close to the observerPos, it's the target.
+                
+                float dist = Vector3.Distance(Target.position, observerPos);
+                if (dist < 50f) // Heuristic: If target is within 50m of observer, assume it's targeting observer
+                {
+                    isTargetingObserver = true;
+                }
+            }
+
+            if (isTargetingObserver && (MovementLogicName == "GuidedMissile" || MovementLogicName == "Torpedo"))
+            {
+                // We are a guided weapon targeting the observer.
+                // Return our specific guidance logic predictor.
+                
+                // 1. Construct Observer's Predictor (Linear assumption for short term)
+                ITargetPredictor observerPredictor = new LinearTargetPredictor(observerPos, observerVel);
+                
+                // 2. Calculate Scaled Turn Rate
+                float scaleFactor = 1.0f;
+                if (WorldPhysicsSystem.Instance != null)
+                {
+                    scaleFactor = WorldPhysicsSystem.Instance.GlobalSpeedScale / WorldPhysicsSystem.Instance.GlobalRangeScale;
+                }
+                
+                // Use Terminal Turn Rate (60f) as that's what matters for interception
+                float terminalTurnRate = 60f * scaleFactor;
+
+                return new AugmentedPursuitPredictor(transform.position, Velocity, observerPredictor, terminalTurnRate);
+            }
+            
+            // Default: Linear Prediction
+            return new LinearTargetPredictor(transform.position, Velocity);
         }
     }
 }

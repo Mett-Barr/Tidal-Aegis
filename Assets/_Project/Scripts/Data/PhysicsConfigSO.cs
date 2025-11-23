@@ -14,5 +14,22 @@ namespace NavalCommand.Data
 
         [Header("Physics Constants")]
         public float StandardGravity = 9.81f;
+
+        [ContextMenu("Calculate Realistic Gravity")]
+        public void CalculateGravity()
+        {
+            // Formula: g' = g * (S^2 / R)
+            // S = SpeedScale, R = RangeScale
+            // Real Gravity approx 9.81
+            
+            if (GlobalRangeScale <= 0.001f) return;
+
+            float realGravity = 9.81f;
+            float factor = (GlobalSpeedScale * GlobalSpeedScale) / GlobalRangeScale;
+            
+            StandardGravity = realGravity * factor;
+            
+            Debug.Log($"[PhysicsConfig] Calculated Gravity: {StandardGravity} (based on SpeedScale {GlobalSpeedScale} and RangeScale {GlobalRangeScale})");
+        }
     }
 }

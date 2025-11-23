@@ -100,25 +100,34 @@ namespace NavalCommand.Entities.Components
                 {
                     if (currentTarget != null)
                     {
-                        desiredAimVector = RotateTowardsTarget(); // Calculate aim only
-                        
-                        if (desiredAimVector.HasValue)
+                        if (WeaponStats.Type == WeaponType.Missile)
                         {
-                            // Check Fire Condition
-                            float dot = Vector3.Dot(FirePoint.forward, desiredAimVector.Value.normalized);
-                            // Only check alignment, let Update handle cooldown
-                            if (dot > 0.99f) 
+                            // VLS Exception: Do NOT rotate launcher. Always ready to fire.
+                            desiredAimVector = null;
+                            isFiring = true;
+                        }
+                        else
+                        {
+                            desiredAimVector = RotateTowardsTarget(); // Calculate aim only
+                            
+                            if (desiredAimVector.HasValue)
                             {
-                                isFiring = true;
+                                // Check Fire Condition
+                                float dot = Vector3.Dot(FirePoint.forward, desiredAimVector.Value.normalized);
+                                // Only check alignment, let Update handle cooldown
+                                if (dot > 0.99f) 
+                                {
+                                    isFiring = true;
+                                }
+                                else
+                                {
+                                    isFiring = false;
+                                }
                             }
                             else
                             {
                                 isFiring = false;
                             }
-                        }
-                        else
-                        {
-                            isFiring = false;
                         }
                     }
                     else
@@ -139,54 +148,41 @@ namespace NavalCommand.Entities.Components
         {
             if (!IsWeaponEnabled) return;
 
+            // Optimization: Staggered Updates
+            updateTimer += Time.deltaTime;
+            if (updateTimer < updateInterval) return;
+            updateTimer = 0f;
+
+            // 1. Rotation Logic
+            if (desiredAimVector.HasValue && FirePoint != null)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(desiredAimVector.Value);
+                // Smoothly rotate towards target
+                FirePoint.rotation = Quaternion.RotateTowards(FirePoint.rotation, targetRotation, RotationSpeed * Time.deltaTime * 100f); // *100 to make speed comparable to degrees/sec
+            }
+
+            // 2. Cooldown & Firing Logic
             if (cooldownTimer > 0)
             {
-                cooldownTimer -= Time.deltaTime;
+                cooldownTimer -= Time.deltaTime * 10f; // *10 to match the staggered update interval (0.1s)
             }
 
-            // Visual Rotation (Smooth, every frame)
-            if (desiredAimVector.HasValue && desiredAimVector.Value.sqrMagnitude > 0.001f)
-            {
-                Vector3 aimVector = desiredAimVector.Value;
-
-                // 1. Rotate Base (Yaw) - Only Y axis
-                Vector3 yawDir = aimVector;
-                yawDir.y = 0;
-                if (yawDir.sqrMagnitude > 0.001f)
-                {
-                    Quaternion yawRot = Quaternion.LookRotation(yawDir);
-                    transform.rotation = Quaternion.RotateTowards(transform.rotation, yawRot, Time.deltaTime * RotationSpeed);
-                }
-
-                // 2. Rotate FirePoint (Pitch) - Local X axis
-                Vector3 localAim = transform.InverseTransformDirection(aimVector);
-                
-                if (new Vector2(localAim.x, localAim.z).sqrMagnitude > 0.0001f)
-                {
-                    float pitchAngle = Mathf.Atan2(localAim.y, new Vector2(localAim.x, localAim.z).magnitude) * Mathf.Rad2Deg;
-                    
-                    if (!float.IsNaN(pitchAngle))
-                    {
-                        Quaternion pitchRot = Quaternion.Euler(-pitchAngle, 0, 0);
-                        FirePoint.localRotation = Quaternion.RotateTowards(FirePoint.localRotation, pitchRot, Time.deltaTime * RotationSpeed);
-                    }
-                }
-                
-                // Debug Visualization
-                if (WeaponStats.Type == WeaponType.CIWS)
-                {
-                    Debug.DrawRay(FirePoint.position, FirePoint.forward * 100f, Color.red);
-                    Debug.DrawRay(FirePoint.position, aimVector.normalized * 100f, Color.green);
-                }
-            }
-
-            // Firing (Synced with Update for frame-perfect spawning)
-            if (isFiring && currentTarget != null)
+            if (isFiring)
             {
                 // Handle High ROF (Multiple shots per frame)
+                // Note: In Staggered Update, we might need to fire multiple times if cooldown is very low
                 while (cooldownTimer <= 0)
                 {
-                    Fire(currentTarget.GetComponent<IDamageable>());
+                    if (currentTarget != null)
+                    {
+                        Fire(currentTarget.GetComponent<IDamageable>());
+                    }
+                    else
+                    {
+                        isFiring = false;
+                        break;
+                    }
+
                     cooldownTimer += WeaponStats.Cooldown; // Accumulate debt
                     
                     // Safety break for extremely low cooldowns to prevent freeze
@@ -228,67 +224,63 @@ namespace NavalCommand.Entities.Components
 
         private Vector3? RotateTowardsTarget()
         {
-            if (currentTarget == null || WorldPhysicsSystem.Instance == null) return null;
+            if (currentTarget == null || WeaponStats == null) return null;
 
             Vector3 myPos = FirePoint.position;
-            
-            // Get Scaled Physics Values
+            Vector3 targetVel = Vector3.zero;
+            Vector3 targetAccel = Vector3.zero;
+
+            // Get Physics Data
             float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
             float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
             
-            // Determine Gravity
-            float gravity = 0f;
-            if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
+            // Calculate Ballistic Gravity
+            // This ensures the projectile can actually reach the max range at 45 degrees
+            float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+            
+            // Apply Multiplier (e.g. 0 for CIWS/Missiles)
+            if (WeaponStats.GravityMultiplier < 0.01f)
             {
-                gravity = 0f;
+                gravityY = 0f;
             }
             else
             {
-                // Check explicit override or default
-                if (WeaponStats.GravityMultiplier < 0.01f) gravity = 0f;
-                else gravity = WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+                gravityY *= WeaponStats.GravityMultiplier;
             }
 
-            // Create Target Predictor
-            Vector3 targetVel = Vector3.zero;
-            Vector3 targetAccel = Vector3.zero;
-            
-            var targetProjectile = currentTarget.GetComponent<ProjectileBehavior>();
+            Vector3 gravity = new Vector3(0, gravityY, 0);
+
+            // Get Target Physics
             Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
-
-            if (targetProjectile != null)
-            {
-                targetVel = targetProjectile.Velocity;
-                targetAccel = targetProjectile.Acceleration;
-            }
-            else if (targetRb != null)
+            if (targetRb != null)
             {
                 targetVel = targetRb.velocity;
             }
+            
+            // Try to get advanced physics state if available
+            // Note: IMovementProvider removed as it's not defined. 
+            // Relying on ProjectileBehavior or Rigidbody for now.
 
+            // Select Predictor
             ITargetPredictor predictor;
             
-            // Advanced Prediction: If it's a missile targeting US, simulate its ProNav logic
-            if (targetProjectile != null && targetProjectile.Target != null && 
-                (targetProjectile.Target == transform || targetProjectile.Target.IsChildOf(transform.root)))
+            // 1. Check if Target provides its own prediction strategy (e.g. Missiles)
+            var predictionProvider = currentTarget.GetComponent<IPredictionProvider>();
+            if (predictionProvider != null)
             {
-                // Create a predictor for OURSELVES (The thing the missile is chasing)
-                // Assume we move linearly for the short interception window
-                Rigidbody myRb = GetComponentInParent<Rigidbody>();
-                Vector3 myVel = (myRb != null) ? myRb.velocity : Vector3.zero;
-                ITargetPredictor myPredictor = new LinearTargetPredictor(transform.position, myVel);
-                
-                // Create the ProNav Simulator
-                predictor = new ProNavTargetPredictor(currentTarget.position, targetVel, myPredictor);
+                // Ask the target for its predictor relative to us
+                // We pass our parent's velocity (ship velocity) as the observer velocity
+                Vector3 myVel = GetComponentInParent<Rigidbody>()?.velocity ?? Vector3.zero;
+                predictor = predictionProvider.GetPredictor(myPos, myVel);
             }
             else if (targetAccel.sqrMagnitude > 0.1f)
             {
-                // Fallback: Quadratic Prediction for maneuvering targets not targeting us
+                // 2. Fallback: Quadratic Prediction for maneuvering targets
                 predictor = new QuadraticTargetPredictor(currentTarget.position, targetVel, targetAccel);
             }
             else
             {
-                // Standard Linear Prediction
+                // 3. Fallback: Standard Linear Prediction
                 predictor = new LinearTargetPredictor(currentTarget.position, targetVel);
             }
 
@@ -307,7 +299,8 @@ namespace NavalCommand.Entities.Components
             else
             {
                 // For Guns/CIWS, use the Ballistics Computer
-                if (BallisticsComputer.SolveInterception(myPos, scaledSpeed, gravity, predictor, out Vector3 solution, out float t))
+                // Pass gravityY (magnitude) instead of Vector3 gravity
+                if (BallisticsComputer.SolveInterception(myPos, scaledSpeed, Mathf.Abs(gravityY), predictor, out Vector3 solution, out float t))
                 {
                     aimVector = solution;
                     hasSolution = true;
@@ -351,15 +344,21 @@ namespace NavalCommand.Entities.Components
                 
                 // Get Scaled Physics Values
                 float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
+                float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
+                
+                // Calculate Ballistic Gravity
+                float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+
                 Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
 
                 projectile.Owner = ownerObj;
                 projectile.Target = ((MonoBehaviour)target).transform;
                 projectile.Damage = WeaponStats.Damage;
                 projectile.Speed = scaledSpeed;
+                projectile.ImpactProfile = WeaponStats.ImpactProfile;
 
-                // Initialize with Velocity and Type
-                projectile.Initialize(initialVelocity, OwnerTeam, WeaponStats.Type);
+                // Initialize with Velocity, Type, AND Custom Gravity
+                projectile.Initialize(initialVelocity, OwnerTeam, WeaponStats.Type, gravityY);
                 
                 // Note: Gravity and Behavior are now handled by the Projectile's internal MovementLogic
                 // which is pre-configured on the Prefab. We don't need to set them here.

@@ -13,6 +13,21 @@ namespace NavalCommand.Systems
     }
 
     /// <summary>
+    /// Interface for entities that can provide a prediction strategy for themselves.
+    /// Allows for decoupled prediction logic (e.g. missiles providing their own guidance model).
+    /// </summary>
+    public interface IPredictionProvider
+    {
+        /// <summary>
+        /// Gets the prediction strategy for this entity, relative to the observer.
+        /// </summary>
+        /// <param name="observerPos">Position of the observer (shooter)</param>
+        /// <param name="observerVel">Velocity of the observer (shooter)</param>
+        /// <returns>A predictor instance</returns>
+        ITargetPredictor GetPredictor(Vector3 observerPos, Vector3 observerVel);
+    }
+
+    /// <summary>
     /// Standard linear prediction: Pos = Start + Vel * t
     /// </summary>
     public class LinearTargetPredictor : ITargetPredictor
@@ -66,27 +81,21 @@ namespace NavalCommand.Systems
     }
 
     /// <summary>
-    /// Simulates a Proportional Navigation missile targeting a specific object (usually the shooter).
+    /// Simulates a Guided Missile using Augmented Pursuit (Predictive Pursuit).
+    /// Matches the logic in MovementFunctions.GuidedMissile.
     /// </summary>
-    public class ProNavTargetPredictor : ITargetPredictor
+    public class AugmentedPursuitPredictor : ITargetPredictor
     {
         private Vector3 _missilePos;
         private Vector3 _missileVel;
         private ITargetPredictor _targetPredictor; // The thing the missile is chasing (Me)
-        private float _navConstant;
         private float _turnRate;
 
-        // Cache simulation results to avoid re-running for every iteration
-        // Since SolveInterception calls PredictPosition multiple times with varying 't',
-        // we can either simulate on the fly or cache. 
-        // For simplicity and robustness, we'll simulate on the fly but with a coarse step.
-        
-        public ProNavTargetPredictor(Vector3 missilePos, Vector3 missileVel, ITargetPredictor myPredictor, float navConstant = 3f, float turnRate = 60f)
+        public AugmentedPursuitPredictor(Vector3 missilePos, Vector3 missileVel, ITargetPredictor myPredictor, float turnRate)
         {
             _missilePos = missilePos;
             _missileVel = missileVel;
             _targetPredictor = myPredictor;
-            _navConstant = navConstant;
             _turnRate = turnRate;
         }
 
@@ -102,30 +111,34 @@ namespace NavalCommand.Systems
             Vector3 currentPos = _missilePos;
             Vector3 currentVel = _missileVel;
             float speed = currentVel.magnitude;
+            Vector3 forward = currentVel.normalized;
             
             for (int i = 0; i < steps; i++)
             {
                 float t = i * dt;
                 Vector3 myPos = _targetPredictor.PredictPosition(t);
-                Vector3 myVel = _targetPredictor.GetVelocity(); // Approximate
+                Vector3 myVel = _targetPredictor.GetVelocity();
 
-                // ProNav Logic (Same as MovementFunctions)
-                Vector3 r = myPos - currentPos;
-                Vector3 v = myVel - currentVel;
-                float rSqr = Vector3.Dot(r, r);
-                
-                Vector3 accelCmd = Vector3.zero;
-                if (rSqr > 0.001f)
+                // Augmented Pursuit Logic (Predictive)
+                // 1. Predict where target will be at impact
+                float dist = Vector3.Distance(currentPos, myPos);
+                float timeToImpact = speed > 0 ? dist / speed : 0;
+                Vector3 predictedTargetPos = myPos + myVel * timeToImpact;
+
+                // 2. Determine desired direction
+                Vector3 desiredDir = (predictedTargetPos - currentPos).normalized;
+
+                // 3. Rotate towards desired direction
+                if (desiredDir != Vector3.zero)
                 {
-                    Vector3 omega = Vector3.Cross(r, v) / rSqr;
-                    Vector3 aCmd = _navConstant * Vector3.Cross(v, omega);
-                    float maxAccel = speed * (_turnRate * Mathf.Deg2Rad);
-                    accelCmd = Vector3.ClampMagnitude(aCmd, maxAccel);
+                    Quaternion currentRot = Quaternion.LookRotation(forward);
+                    Quaternion targetRot = Quaternion.LookRotation(desiredDir);
+                    Quaternion newRot = Quaternion.RotateTowards(currentRot, targetRot, _turnRate * dt);
+                    forward = newRot * Vector3.forward;
                 }
 
-                // Euler Integration
-                currentVel += accelCmd * dt;
-                currentVel = currentVel.normalized * speed; // Assume constant speed
+                // 4. Move
+                currentVel = forward * speed;
                 currentPos += currentVel * dt;
             }
 

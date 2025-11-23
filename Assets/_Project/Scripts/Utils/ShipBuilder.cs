@@ -204,9 +204,27 @@ namespace NavalCommand.Utils
                     break;
 
                 case WeaponType.Missile:
-                    // Box Launcher
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1.2f, 0.4f, 1.2f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(1f, 0.8f, 1.5f), new Vector3(0, 0.5f, 0), new Vector3(-15, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    // VLS (Vertical Launch System)
+                    // 1. Base (Flat Block)
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(2.0f, 0.5f, 3.0f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    
+                    // 2. Cells (Visual Detail)
+                    // Create a grid of cells on top
+                    for (int x = -1; x <= 1; x++)
+                    {
+                        for (int z = -2; z <= 2; z++)
+                        {
+                            CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.4f, 0.1f, 0.4f), new Vector3(x * 0.6f, 0.3f, z * 0.6f)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
+                        }
+                    }
+
+                    // 3. FirePoint (CRITICAL: Must point UP)
+                    // Forward (+Z) of FirePoint determines launch direction.
+                    // Rotate -90 on X so Forward points Up.
+                    GameObject fp = new GameObject("FirePoint");
+                    fp.transform.SetParent(container.transform);
+                    fp.transform.localPosition = new Vector3(0, 1.0f, 0); // Above the cells
+                    fp.transform.localRotation = Quaternion.Euler(-90, 0, 0); // Point UP
                     break;
 
                 case WeaponType.Torpedo:
@@ -297,6 +315,17 @@ namespace NavalCommand.Utils
                         mountNormPositions.Add(new Vector3(-0.4f, 0, z)); // Port
                         mountNormPositions.Add(new Vector3(0.4f, 0, z));  // Starboard
                     }
+
+                    // Extra CIWS Mounts (Front and Back Coverage)
+                    // Front Side
+                    mountNormPositions.Add(new Vector3(-0.4f, 0, 0.15f)); 
+                    mountNormPositions.Add(new Vector3(0.4f, 0, 0.15f));
+                    // Back Side
+                    mountNormPositions.Add(new Vector3(-0.4f, 0, 0.85f));
+                    mountNormPositions.Add(new Vector3(0.4f, 0, 0.85f));
+
+                    islandNormPosition = 0.5f;
+                    break;
 
                     islandNormPosition = 0.5f; // Center Island
                     break;

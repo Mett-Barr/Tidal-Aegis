@@ -82,7 +82,7 @@ namespace NavalCommand.Entities.Units
 
         public virtual UnitType GetUnitType()
         {
-            return UnitType.Surface;
+            return UnitType.Ship;
         }
 
         protected virtual void Die()

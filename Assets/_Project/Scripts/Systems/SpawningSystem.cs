@@ -16,17 +16,30 @@ namespace NavalCommand.Systems
         public GameObject[] EnemyPrefabs; // Array of possible enemies
         public float SpawnRadius = 4000f;
         public float SpawnInterval = 2f;
+        public int MaxEnemies = 10; // Limit active enemies
 
         [Header("Debug Settings")]
-        public SpawnMode Mode = SpawnMode.Specific; // Default to Specific for now
+        public SpawnMode Mode = SpawnMode.Random; // Default to Random for variety
         public int SpecificEnemyIndex = 0;
-        public string SpecificPrefabName = "Ship_Light_Missile"; // Default to Missile Ship
+        public string SpecificPrefabName = ""; // Clear default to avoid overriding Random if Mode is accidentally Specific
 
         private float spawnTimer;
+        private System.Collections.Generic.List<GameObject> activeEnemies = new System.Collections.Generic.List<GameObject>();
 
         private void Update()
         {
             if (GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing) return;
+
+            // Cleanup nulls (destroyed enemies)
+            for (int i = activeEnemies.Count - 1; i >= 0; i--)
+            {
+                if (activeEnemies[i] == null)
+                {
+                    activeEnemies.RemoveAt(i);
+                }
+            }
+
+            if (activeEnemies.Count >= MaxEnemies) return;
 
             spawnTimer += Time.deltaTime;
             if (spawnTimer >= SpawnInterval)
@@ -82,6 +95,7 @@ namespace NavalCommand.Systems
             if (prefab != null)
             {
                 GameObject enemyObj = Instantiate(prefab, spawnPos, Quaternion.LookRotation(-spawnPos.normalized));
+                activeEnemies.Add(enemyObj);
                 
                 // Force Team Assignment for Spawned Enemies
                 var unit = enemyObj.GetComponent<NavalCommand.Entities.Units.BaseUnit>();

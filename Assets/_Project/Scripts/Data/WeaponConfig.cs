@@ -9,6 +9,7 @@ namespace NavalCommand.Data
         public string DisplayName;
         public WeaponType Type;
         public TargetCapability TargetType;
+        public NavalCommand.Systems.VFX.ImpactProfile ImpactProfile;
         
         // Stats
         public float Range;

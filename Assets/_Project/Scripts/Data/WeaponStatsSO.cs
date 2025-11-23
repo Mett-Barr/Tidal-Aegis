@@ -15,9 +15,11 @@ namespace NavalCommand.Data
     public enum TargetCapability
     {
         None = 0,
-        Surface = 1,
-        Air = 2,
-        Missile = 4
+        Ship = 1,
+        Aircraft = 2,
+        Missile = 4,
+        Torpedo = 8,
+        Shell = 16
     }
 
     [CreateAssetMenu(fileName = "NewWeaponStats", menuName = "NavalCommand/WeaponStats")]
@@ -29,7 +31,8 @@ namespace NavalCommand.Data
 
         [Header("Combat Stats")]
         public WeaponType Type;
-        public TargetCapability TargetType = TargetCapability.Surface;
+        public TargetCapability TargetType = TargetCapability.Ship;
+        public NavalCommand.Systems.VFX.ImpactProfile ImpactProfile;
 
         // ---------------------------------------------------------------------
         // Range

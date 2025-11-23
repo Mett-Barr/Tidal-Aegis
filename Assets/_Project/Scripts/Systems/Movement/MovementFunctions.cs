@@ -58,22 +58,39 @@ namespace NavalCommand.Systems.Movement
             float cruiseHeight = state.CustomData.x;
             float terminalDist = state.CustomData.y;
             float vlsHeight = state.CustomData.z;
-            float turnRate = 60f; // Increased for better agility
-            float navConstant = 3f; // ProNav Constant (typically 3-5)
+            
+            // Scaling Factor for Turn Rate
+            float scaleFactor = 1.0f;
+            if (WorldPhysicsSystem.Instance != null)
+            {
+                scaleFactor = WorldPhysicsSystem.Instance.GlobalSpeedScale / WorldPhysicsSystem.Instance.GlobalRangeScale;
+            }
+
+            // Split Turn Rates (Scaled)
+            float cruiseTurnRate = 180f * scaleFactor; // Agile
+            float terminalTurnRate = 60f * scaleFactor; // Smooth
+            float currentTurnRate = cruiseTurnRate; // Default to cruise
+            
+            float navConstant = 3f; // Unused in Predictive Pursuit
 
             Vector3 currentPos = state.Position;
             Vector3 currentVel = state.Velocity;
             float speed = currentVel.magnitude;
             Vector3 forward = currentVel.normalized;
+            Vector3 desiredDir = Vector3.zero;
 
             int phase = state.PhaseIndex;
-            Vector3 desiredDir = forward;
-            Vector3 accelerationCmd = Vector3.zero;
+            
+            if (speed < 0.001f)
+            {
+                // Safety: If speed is zero, just return current state to prevent NaN/Errors
+                return state;
+            }
 
             // --- Phase Logic ---
             if (phase == 0) // Vertical Launch
             {
-                if (state.TimeAlive < 0.5f || currentPos.y < vlsHeight)
+                if (currentPos.y < vlsHeight)
                 {
                     desiredDir = Vector3.up;
                 }
@@ -85,6 +102,8 @@ namespace NavalCommand.Systems.Movement
             
             if (phase == 1) // Cruise
             {
+                currentTurnRate = cruiseTurnRate; // Use Agile Turn Rate
+
                 // Maintain Cruise Height
                 float heightError = cruiseHeight - currentPos.y;
                 Vector3 cruiseDir = forward;
@@ -99,7 +118,10 @@ namespace NavalCommand.Systems.Movement
                     {
                         float dist = Vector3.Distance(currentPos, targetPos);
                         float timeToImpact = dist / speed;
-                        targetPos = ctx.TargetPrediction(timeToImpact);
+                        if (!float.IsNaN(timeToImpact) && !float.IsInfinity(timeToImpact))
+                        {
+                            targetPos = ctx.TargetPrediction(timeToImpact);
+                        }
                     }
 
                     Vector3 dirToTarget = (targetPos - currentPos).normalized;
@@ -123,58 +145,52 @@ namespace NavalCommand.Systems.Movement
                 }
             }
 
-            if (phase == 2) // Terminal Homing (Proportional Navigation)
+            if (phase == 2) // Terminal Homing (Robust Predictive Pursuit)
             {
+                currentTurnRate = terminalTurnRate; // Use Smooth Turn Rate
+
                 if (ctx.TargetState.HasValue)
                 {
                     Vector3 targetPos = ctx.TargetState.Value.Position;
                     Vector3 targetVel = ctx.TargetState.Value.Velocity;
                     
-                    // ProNav Algorithm
-                    // 1. Relative Position & Velocity
-                    Vector3 r = targetPos - currentPos;
-                    Vector3 v = targetVel - currentVel;
+                    float dist = Vector3.Distance(currentPos, targetPos);
+                    float timeToImpact = dist / speed;
                     
-                    // 2. Rotation Vector of LOS (Omega)
-                    // Omega = (R x V) / (R . R)
-                    float rSqr = Vector3.Dot(r, r);
-                    if (rSqr > 0.001f)
+                    if (!float.IsNaN(timeToImpact) && !float.IsInfinity(timeToImpact))
                     {
-                        Vector3 omega = Vector3.Cross(r, v) / rSqr;
+                         // Predict future position
+                        Vector3 predictedPos = targetPos + targetVel * timeToImpact;
                         
-                        // 3. Acceleration Command
-                        // A_cmd = N * V_closing * (Omega x LOS_Unit)? 
-                        // Simplified Vector ProNav: A = N * V_rel x Omega
-                        // This produces acceleration perpendicular to relative velocity
-                        
-                        Vector3 aCmd = navConstant * Vector3.Cross(v, omega); // This is technically APN (Augmented ProNav) if we include target accel, but simple PN uses V_rel.
-                        
-                        // Limit Acceleration based on Turn Rate
-                        // Max Accel = Speed * TurnRate (approx circular motion a = v^2/r = v * omega)
-                        float maxAccel = speed * (turnRate * Mathf.Deg2Rad);
-                        accelerationCmd = Vector3.ClampMagnitude(aCmd, maxAccel);
-                        
-                        // We don't set desiredDir directly here, we apply acceleration to velocity
-                        // But to keep consistent with the "Turn Rate" model used in other phases:
-                        // We can convert A_cmd to a desired direction.
-                        // Desired Dir is roughly Current Dir + (A_cmd * dt) / Speed
-                        desiredDir = (currentVel + accelerationCmd * dt).normalized;
+                        // Calculate desired direction
+                        desiredDir = (predictedPos - currentPos).normalized;
                     }
                     else
                     {
-                        desiredDir = (targetPos - currentPos).normalized; // Fallback
+                        desiredDir = (targetPos - currentPos).normalized;
+                    }
+
+                    // Apply Turn Rate (Smooth Rotation)
+                    if (desiredDir != Vector3.zero && forward != Vector3.zero)
+                    {
+                        Quaternion currentRot = Quaternion.LookRotation(forward);
+                        Quaternion targetRot = Quaternion.LookRotation(desiredDir);
+                        Quaternion newRot = Quaternion.RotateTowards(currentRot, targetRot, currentTurnRate * dt);
+                        forward = newRot * Vector3.forward;
                     }
                 }
             }
-
-            // --- Kinematics ---
-            // Rotate velocity towards desired direction
-            if (desiredDir != Vector3.zero)
+            else
             {
-                Quaternion currentRot = Quaternion.LookRotation(forward);
-                Quaternion targetRot = Quaternion.LookRotation(desiredDir);
-                Quaternion newRot = Quaternion.RotateTowards(currentRot, targetRot, turnRate * dt);
-                forward = newRot * Vector3.forward;
+                // --- Kinematics (Launch / Cruise) ---
+                // Rotate velocity towards desired direction
+                if (desiredDir != Vector3.zero && forward != Vector3.zero)
+                {
+                    Quaternion currentRot = Quaternion.LookRotation(forward);
+                    Quaternion targetRot = Quaternion.LookRotation(desiredDir);
+                    Quaternion newRot = Quaternion.RotateTowards(currentRot, targetRot, currentTurnRate * dt);
+                    forward = newRot * Vector3.forward;
+                }
             }
 
             Vector3 newVelocity = forward * speed; 
@@ -201,7 +217,15 @@ namespace NavalCommand.Systems.Movement
         public static MovementState Torpedo(MovementState state, MovementContext ctx, float dt)
         {
             float depth = state.CustomData.x;
-            float turnRate = 30f;
+            
+            // Scaling Factor
+            float scaleFactor = 1.0f;
+            if (WorldPhysicsSystem.Instance != null)
+            {
+                scaleFactor = WorldPhysicsSystem.Instance.GlobalSpeedScale / WorldPhysicsSystem.Instance.GlobalRangeScale;
+            }
+            
+            float turnRate = 30f * scaleFactor;
 
             Vector3 currentPos = state.Position;
             Vector3 currentVel = state.Velocity;
