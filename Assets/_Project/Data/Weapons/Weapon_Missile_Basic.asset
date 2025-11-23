@@ -14,15 +14,29 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   DisplayName: Missile Launcher
   Type: 1
-  TargetType: 1
-  Range: 120000
-  Cooldown: 10
-  Damage: 60
-  ProjectileSpeed: 290
-  GravityMultiplier: 1
-  RotationSpeed: 45
-  Spread: 0
-  ProjectilePrefab: {fileID: 8833289525831955600, guid: e0946eafee698da49add6955c5d9fd5f,
+  TargetType: 3
+  _baseRange: 120000
+  _overrideRange: 0
+  _useOverrideRange: 0
+  _baseCooldown: 10
+  _overrideCooldown: 0
+  _useOverrideCooldown: 0
+  _baseDamage: 60
+  _overrideDamage: 0
+  _useOverrideDamage: 0
+  _baseProjectileSpeed: 290
+  _overrideProjectileSpeed: 0
+  _useOverrideProjectileSpeed: 0
+  _baseGravityMultiplier: 1
+  _overrideGravityMultiplier: 0
+  _useOverrideGravityMultiplier: 0
+  _baseRotationSpeed: 45
+  _overrideRotationSpeed: 0
+  _useOverrideRotationSpeed: 0
+  _baseSpread: 0
+  _overrideSpread: 0
+  _useOverrideSpread: 0
+  ProjectilePrefab: {fileID: 831526137084507567, guid: e0946eafee698da49add6955c5d9fd5f,
     type: 3}
   TargetMask:
     serializedVersion: 2

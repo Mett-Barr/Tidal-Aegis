@@ -106,7 +106,8 @@ namespace NavalCommand.Entities.Components
                         {
                             // Check Fire Condition
                             float dot = Vector3.Dot(FirePoint.forward, desiredAimVector.Value.normalized);
-                            if (dot > 0.999f && cooldownTimer <= 0)
+                            // Only check alignment, let Update handle cooldown
+                            if (dot > 0.99f) 
                             {
                                 isFiring = true;
                             }
@@ -249,11 +250,47 @@ namespace NavalCommand.Entities.Components
             }
 
             // Create Target Predictor
-            Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
-            Vector3 targetVel = (targetRb != null) ? targetRb.velocity : Vector3.zero;
+            Vector3 targetVel = Vector3.zero;
+            Vector3 targetAccel = Vector3.zero;
             
-            // Use Linear Predictor for now (can be swapped for HomingPredictor later)
-            ITargetPredictor predictor = new LinearTargetPredictor(currentTarget.position, targetVel);
+            var targetProjectile = currentTarget.GetComponent<ProjectileBehavior>();
+            Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
+
+            if (targetProjectile != null)
+            {
+                targetVel = targetProjectile.Velocity;
+                targetAccel = targetProjectile.Acceleration;
+            }
+            else if (targetRb != null)
+            {
+                targetVel = targetRb.velocity;
+            }
+
+            ITargetPredictor predictor;
+            
+            // Advanced Prediction: If it's a missile targeting US, simulate its ProNav logic
+            if (targetProjectile != null && targetProjectile.Target != null && 
+                (targetProjectile.Target == transform || targetProjectile.Target.IsChildOf(transform.root)))
+            {
+                // Create a predictor for OURSELVES (The thing the missile is chasing)
+                // Assume we move linearly for the short interception window
+                Rigidbody myRb = GetComponentInParent<Rigidbody>();
+                Vector3 myVel = (myRb != null) ? myRb.velocity : Vector3.zero;
+                ITargetPredictor myPredictor = new LinearTargetPredictor(transform.position, myVel);
+                
+                // Create the ProNav Simulator
+                predictor = new ProNavTargetPredictor(currentTarget.position, targetVel, myPredictor);
+            }
+            else if (targetAccel.sqrMagnitude > 0.1f)
+            {
+                // Fallback: Quadratic Prediction for maneuvering targets not targeting us
+                predictor = new QuadraticTargetPredictor(currentTarget.position, targetVel, targetAccel);
+            }
+            else
+            {
+                // Standard Linear Prediction
+                predictor = new LinearTargetPredictor(currentTarget.position, targetVel);
+            }
 
             Vector3 aimVector = Vector3.zero;
             bool hasSolution = false;
@@ -312,54 +349,20 @@ namespace NavalCommand.Entities.Components
                 var parentUnit = GetComponentInParent<BaseUnit>();
                 if (parentUnit != null) ownerObj = parentUnit.gameObject;
                 
-                projectile.Initialize(ownerObj, OwnerTeam);
-                
-                projectile.Damage = WeaponStats.Damage;
-                projectile.Target = ((MonoBehaviour)target).transform;
-                
                 // Get Scaled Physics Values
                 float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
-                float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
-                
-                // Calculate Gravity
-                float gravity = 0f;
-                if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
-                {
-                    gravity = 0f;
-                }
-                else
-                {
-                    // Check for explicit override in WeaponStats (if we added it, but we didn't add it to the class yet, so rely on Type)
-                    // Actually, we can check GravityMultiplier
-                    if (WeaponStats.GravityMultiplier < 0.01f)
-                    {
-                        gravity = 0f;
-                    }
-                    else
-                    {
-                        gravity = WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
-                    }
-                }
+                Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
 
-                // Apply Velocity
-                if (projectile.GetComponent<Rigidbody>() is Rigidbody pRb)
-                {
-                    pRb.velocity = fireRotation * Vector3.forward * scaledSpeed;
-                }
-                
-                // Set Projectile Physics
+                projectile.Owner = ownerObj;
+                projectile.Target = ((MonoBehaviour)target).transform;
+                projectile.Damage = WeaponStats.Damage;
                 projectile.Speed = scaledSpeed;
-                projectile.SetGravity(gravity);
+
+                // Initialize with Velocity and Type
+                projectile.Initialize(initialVelocity, OwnerTeam, WeaponStats.Type);
                 
-                // Set Behavior Type
-                if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
-                {
-                    projectile.BehaviorType = ProjectileType.Homing;
-                }
-                else
-                {
-                    projectile.BehaviorType = ProjectileType.Ballistic;
-                }
+                // Note: Gravity and Behavior are now handled by the Projectile's internal MovementLogic
+                // which is pre-configured on the Prefab. We don't need to set them here.
             }
             
             cooldownTimer = WeaponStats.Cooldown;

@@ -7,15 +7,17 @@ namespace NavalCommand.Systems
     {
         public static WorldPhysicsSystem Instance { get; private set; }
 
-        [Header("Global Scaling")]
-        [Tooltip("Scale factor for all projectile speeds (0.05 = 5% of real speed)")]
-        public float GlobalSpeedScale = 0.05f;
+        [Header("Configuration")]
+        public PhysicsConfigSO Config;
 
-        [Tooltip("Scale factor for all weapon ranges (0.1 = 10% of real range)")]
-        public float GlobalRangeScale = 1f;
+        // Fallbacks in case Config is missing
+        private float _defaultSpeedScale = 0.05f;
+        private float _defaultRangeScale = 1f;
+        private float _defaultGravity = 9.81f;
 
-        [Header("Physics Constants")]
-        public float StandardGravity = 9.81f;
+        public float GlobalSpeedScale => Config != null ? Config.GlobalSpeedScale : _defaultSpeedScale;
+        public float GlobalRangeScale => Config != null ? Config.GlobalRangeScale : _defaultRangeScale;
+        public float StandardGravity => Config != null ? Config.StandardGravity : _defaultGravity;
 
         private void Awake()
         {
@@ -23,6 +25,14 @@ namespace NavalCommand.Systems
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject); // Optional: Keep across scenes
+                
+                // Try to load default config if missing
+                if (Config == null)
+                {
+                    Debug.LogWarning("[WorldPhysicsSystem] No PhysicsConfig assigned! Attempting to load default...");
+                    // In a real project, you might load from Resources or Addressables.
+                    // For now, we rely on the Inspector assignment or fallbacks.
+                }
             }
             else
             {
@@ -58,9 +68,6 @@ namespace NavalCommand.Systems
             // Required gravity to hit max range at 45 degrees
             float requiredGravity = (scaledSpeed * scaledSpeed) / scaledRange;
             
-            // We clamp it to be at most StandardGravity to avoid "floaty" physics if speed is high,
-            // but usually with 0.05 speed scale, required gravity will be very low.
-            // Actually, we should return the EXACT gravity needed for the arc.
             return requiredGravity;
         }
     }

@@ -15,14 +15,28 @@ MonoBehaviour:
   DisplayName: CIWS
   Type: 4
   TargetType: 6
-  Range: 1500
-  Cooldown: 0.004
-  Damage: 2
-  ProjectileSpeed: 1100
-  GravityMultiplier: 1
-  RotationSpeed: 115
-  Spread: 0.3
-  ProjectilePrefab: {fileID: 2306513383593668211, guid: 53a5e88dc65ed264398d26f2db714d92,
+  _baseRange: 1500
+  _overrideRange: 0
+  _useOverrideRange: 0
+  _baseCooldown: 0.004
+  _overrideCooldown: 0.001
+  _useOverrideCooldown: 1
+  _baseDamage: 2
+  _overrideDamage: 0
+  _useOverrideDamage: 0
+  _baseProjectileSpeed: 1100
+  _overrideProjectileSpeed: 0
+  _useOverrideProjectileSpeed: 0
+  _baseGravityMultiplier: 1
+  _overrideGravityMultiplier: 0
+  _useOverrideGravityMultiplier: 0
+  _baseRotationSpeed: 115
+  _overrideRotationSpeed: 270
+  _useOverrideRotationSpeed: 1
+  _baseSpread: 0.3
+  _overrideSpread: 0
+  _useOverrideSpread: 1
+  ProjectilePrefab: {fileID: 7427356872269668277, guid: 53a5e88dc65ed264398d26f2db714d92,
     type: 3}
   TargetMask:
     serializedVersion: 2

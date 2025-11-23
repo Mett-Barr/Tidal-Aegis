@@ -105,6 +105,7 @@ namespace NavalCommand.Editor
 
                 // Apply changes back to Prefab
                 PrefabUtility.ApplyPrefabInstance(instance, InteractionMode.AutomatedAction);
+                DestroyImmediate(instance); // Fix: Destroy the temporary instance to prevent duplicates
                 
                 // ---------------------------------------------------------
                 // NEW: Auto-bind to GameManager
@@ -117,19 +118,42 @@ namespace NavalCommand.Editor
                     // 1. Assign Prefab
                     gameManager.PlayerPrefab = prefab; 
                     
-                    // 2. Spawn into Scene for User Control
-                    if (gameManager.PlayerFlagship == null)
+                    // 2. Spawn or Replace in Scene
+                    GameObject existingShip = GameObject.Find("Player Flagship");
+                    if (existingShip == null) existingShip = GameObject.Find("Ship_SuperFlagship");
+
+                    if (existingShip != null)
                     {
-                        GameObject sceneInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
-                        sceneInstance.name = "Player Flagship";
-                        sceneInstance.transform.position = Vector3.zero;
+                        Debug.Log($"[FixShipsTool] Found existing ship '{existingShip.name}'. Updating it...");
                         
-                        gameManager.PlayerFlagship = sceneInstance.GetComponent<NavalCommand.Entities.Units.FlagshipController>();
-                        Debug.Log($"[FixShipsTool] Spawned 'Player Flagship' into the scene for manual control.");
+                        // Ensure it's named correctly
+                        if (existingShip.name != "Player Flagship") existingShip.name = "Player Flagship";
+                        
+                        // Unity automatically updates the scene instance from the prefab changes we just applied.
+                        // We do NOT revert overrides here to preserve the user's custom position/rotation.
+                        
+                        gameManager.PlayerFlagship = existingShip.GetComponent<NavalCommand.Entities.Units.FlagshipController>();
                     }
                     else
                     {
-                        Debug.Log($"[FixShipsTool] PlayerFlagship already exists in scene: {gameManager.PlayerFlagship.name}");
+                        // Spawn new if missing
+                        Vector3 spawnPos = Vector3.zero;
+                        Quaternion spawnRot = Quaternion.identity;
+                        
+                        // Try to spawn where the old one was if GameManager had a ref
+                        if (gameManager.PlayerFlagship != null && gameManager.PlayerFlagship.gameObject.scene.IsValid())
+                        {
+                             spawnPos = gameManager.PlayerFlagship.transform.position;
+                             spawnRot = gameManager.PlayerFlagship.transform.rotation;
+                        }
+
+                        GameObject sceneInstance = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                        sceneInstance.name = "Player Flagship";
+                        sceneInstance.transform.position = spawnPos;
+                        sceneInstance.transform.rotation = spawnRot;
+                        
+                        gameManager.PlayerFlagship = sceneInstance.GetComponent<NavalCommand.Entities.Units.FlagshipController>();
+                        Debug.Log($"[FixShipsTool] Spawned 'Player Flagship' at {spawnPos}.");
                     }
 
                     // 3. Select it for the user
@@ -148,6 +172,34 @@ namespace NavalCommand.Editor
                 {
                     Debug.LogError("[FixShipsTool] Could not find GameManager in scene!");
                 }
+
+                // ---------------------------------------------------------
+                // NEW: Auto-assign Physics Config
+                // ---------------------------------------------------------
+                var physicsSystem = FindObjectOfType<NavalCommand.Systems.WorldPhysicsSystem>();
+                if (physicsSystem == null)
+                {
+                    GameObject go = new GameObject("WorldPhysicsSystem");
+                    physicsSystem = go.AddComponent<NavalCommand.Systems.WorldPhysicsSystem>();
+                    Debug.Log("[FixShipsTool] Created missing WorldPhysicsSystem.");
+                }
+
+                if (physicsSystem.Config == null)
+                {
+                    string configPath = "Assets/_Project/Data/PhysicsConfig.asset";
+                    PhysicsConfigSO config = AssetDatabase.LoadAssetAtPath<PhysicsConfigSO>(configPath);
+                    if (config != null)
+                    {
+                        physicsSystem.Config = config;
+                        EditorUtility.SetDirty(physicsSystem);
+                        Debug.Log($"[FixShipsTool] Assigned PhysicsConfig to WorldPhysicsSystem.");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[FixShipsTool] Could not find PhysicsConfig at {configPath}");
+                    }
+                }
+
 
                 Debug.Log("<color=green>SUCCESS: Super Flagship fixed! Mesh regenerated (URP/Standard) and bound to GameManager.</color>");
             }

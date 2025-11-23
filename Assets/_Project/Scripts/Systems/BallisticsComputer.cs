@@ -37,6 +37,107 @@ namespace NavalCommand.Systems
         }
     }
 
+    /// <summary>
+    /// Quadratic prediction: Pos = Start + Vel * t + 0.5 * Accel * t^2
+    /// Useful for accelerating or turning targets (if Accel is centripetal).
+    /// </summary>
+    public class QuadraticTargetPredictor : ITargetPredictor
+    {
+        private Vector3 _startPos;
+        private Vector3 _velocity;
+        private Vector3 _acceleration;
+
+        public QuadraticTargetPredictor(Vector3 pos, Vector3 vel, Vector3 accel)
+        {
+            _startPos = pos;
+            _velocity = vel;
+            _acceleration = accel;
+        }
+
+        public Vector3 PredictPosition(float time)
+        {
+            return _startPos + _velocity * time + 0.5f * _acceleration * time * time;
+        }
+
+        public Vector3 GetVelocity()
+        {
+            return _velocity + _acceleration * 1f; 
+        }
+    }
+
+    /// <summary>
+    /// Simulates a Proportional Navigation missile targeting a specific object (usually the shooter).
+    /// </summary>
+    public class ProNavTargetPredictor : ITargetPredictor
+    {
+        private Vector3 _missilePos;
+        private Vector3 _missileVel;
+        private ITargetPredictor _targetPredictor; // The thing the missile is chasing (Me)
+        private float _navConstant;
+        private float _turnRate;
+
+        // Cache simulation results to avoid re-running for every iteration
+        // Since SolveInterception calls PredictPosition multiple times with varying 't',
+        // we can either simulate on the fly or cache. 
+        // For simplicity and robustness, we'll simulate on the fly but with a coarse step.
+        
+        public ProNavTargetPredictor(Vector3 missilePos, Vector3 missileVel, ITargetPredictor myPredictor, float navConstant = 3f, float turnRate = 60f)
+        {
+            _missilePos = missilePos;
+            _missileVel = missileVel;
+            _targetPredictor = myPredictor;
+            _navConstant = navConstant;
+            _turnRate = turnRate;
+        }
+
+        public Vector3 PredictPosition(float time)
+        {
+            if (time <= 0.001f) return _missilePos;
+
+            // Run Simulation
+            // Step size: 0.05s for better precision
+            float dt = 0.05f;
+            int steps = Mathf.CeilToInt(time / dt);
+            
+            Vector3 currentPos = _missilePos;
+            Vector3 currentVel = _missileVel;
+            float speed = currentVel.magnitude;
+            
+            for (int i = 0; i < steps; i++)
+            {
+                float t = i * dt;
+                Vector3 myPos = _targetPredictor.PredictPosition(t);
+                Vector3 myVel = _targetPredictor.GetVelocity(); // Approximate
+
+                // ProNav Logic (Same as MovementFunctions)
+                Vector3 r = myPos - currentPos;
+                Vector3 v = myVel - currentVel;
+                float rSqr = Vector3.Dot(r, r);
+                
+                Vector3 accelCmd = Vector3.zero;
+                if (rSqr > 0.001f)
+                {
+                    Vector3 omega = Vector3.Cross(r, v) / rSqr;
+                    Vector3 aCmd = _navConstant * Vector3.Cross(v, omega);
+                    float maxAccel = speed * (_turnRate * Mathf.Deg2Rad);
+                    accelCmd = Vector3.ClampMagnitude(aCmd, maxAccel);
+                }
+
+                // Euler Integration
+                currentVel += accelCmd * dt;
+                currentVel = currentVel.normalized * speed; // Assume constant speed
+                currentPos += currentVel * dt;
+            }
+
+            return currentPos;
+        }
+
+        public Vector3 GetVelocity()
+        {
+            return _missileVel;
+        }
+    }
+
     public static class BallisticsComputer
     {
         /// <summary>

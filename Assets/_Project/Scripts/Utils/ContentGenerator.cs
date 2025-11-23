@@ -19,12 +19,32 @@ namespace NavalCommand.Utils
             EnsureDirectories();
             GenerateProjectiles();
             GenerateWeaponStats();
+            GeneratePhysicsConfig();
             GenerateShips();
             SetupSpawningSystem();
             
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("Basic Content Generated Successfully!");
+        }
+
+        private static void GeneratePhysicsConfig()
+        {
+            string path = "Assets/_Project/Data/PhysicsConfig.asset";
+            PhysicsConfigSO config = AssetDatabase.LoadAssetAtPath<PhysicsConfigSO>(path);
+            
+            if (config == null)
+            {
+                config = ScriptableObject.CreateInstance<PhysicsConfigSO>();
+                AssetDatabase.CreateAsset(config, path);
+            }
+
+            // Set Defaults
+            config.GlobalSpeedScale = 0.05f;
+            config.GlobalRangeScale = 1f;
+            config.StandardGravity = 9.81f;
+            
+            EditorUtility.SetDirty(config);
         }
 
         private static void EnsureDirectories()
@@ -44,33 +64,15 @@ namespace NavalCommand.Utils
 
         private static void GenerateProjectiles()
         {
-            // Flagship Gun: Ballistic, Standard
-            CreateProjectile("Projectile_FlagshipGun", Color.yellow, ProjectileType.Ballistic, "Shell",
-                WeaponConstants.FlagshipGun.ProjectileSpeed, WeaponConstants.FlagshipGun.Damage);
-            
-            // Missile: VLS -> Cruise (15m) -> Terminal
-            CreateProjectile("Projectile_Missile", Color.red, ProjectileType.Homing, "Missile",
-                WeaponConstants.Missile.ProjectileSpeed, WeaponConstants.Missile.Damage, 
-                cruiseHeight: 15f, terminalDist: 50f, vlsHeight: 20f, turnRate: 15f);
-            
-            // Torpedo: Underwater (-2m) -> Homing
-            CreateProjectile("Projectile_Torpedo", Color.blue, ProjectileType.Homing, "Torpedo",
-                WeaponConstants.Torpedo.ProjectileSpeed, WeaponConstants.Torpedo.Damage,
-                cruiseHeight: -2f, terminalDist: 30f, vlsHeight: 0f, turnRate: 1f);
-            
-            // Autocannon: Fast, Straight
-            CreateProjectile("Projectile_Autocannon", new Color(1f, 0.5f, 0f), ProjectileType.Straight, "Tracer",
-                WeaponConstants.Autocannon.ProjectileSpeed, WeaponConstants.Autocannon.Damage);
-            
-            // CIWS: Very Fast, Straight
-            CreateProjectile("Projectile_CIWS", Color.white, ProjectileType.Straight, "Tracer_Small",
-                WeaponConstants.CIWS.ProjectileSpeed, WeaponConstants.CIWS.Damage);
+            foreach (var config in WeaponRegistry.AllWeapons)
+            {
+                CreateProjectile(config);
+            }
         }
 
-        private static void CreateProjectile(string name, Color color, ProjectileType type, string visualStyle, float speed, float damage,
-            float cruiseHeight = 0f, float terminalDist = 0f, float vlsHeight = 0f, float turnRate = 0f)
+        private static void CreateProjectile(WeaponConfig config)
         {
-            string path = $"Assets/_Project/Prefabs/Projectiles/{name}.prefab";
+            string path = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
             
             // Always recreate to ensure updates
             GameObject existing = AssetDatabase.LoadAssetAtPath<GameObject>(path);
@@ -79,30 +81,32 @@ namespace NavalCommand.Utils
                 AssetDatabase.DeleteAsset(path);
             }
 
-            GameObject go = new GameObject(name);
+            GameObject go = new GameObject(config.ProjectileName);
             
             // Create Model
-            CreateProjectileModel(go, visualStyle, color);
+            CreateProjectileModel(go, config.ProjectileStyle, config.ProjectileColor);
 
             // Physics
+            // Physics
             var rb = go.AddComponent<Rigidbody>();
-            rb.useGravity = (type == ProjectileType.Ballistic || type == ProjectileType.Straight);
-            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+            rb.useGravity = false; // Logic handles gravity now
+            rb.isKinematic = true; // Logic handles movement
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
 
             // Behavior
             var proj = go.AddComponent<ProjectileBehavior>();
-            proj.BehaviorType = type;
-            proj.Speed = speed;
-            proj.Damage = damage;
+            proj.MovementLogicName = config.MovementLogicName;
+            proj.Speed = config.ProjectileSpeed;
+            proj.Damage = config.Damage;
             
             // Advanced Settings
-            proj.CruiseHeight = cruiseHeight;
-            proj.TerminalHomingDistance = terminalDist;
-            proj.VerticalLaunchHeight = vlsHeight;
-            proj.TurnRate = turnRate;
+            proj.CruiseHeight = config.CruiseHeight;
+            proj.TerminalHomingDistance = config.TerminalHomingDistance;
+            proj.VerticalLaunchHeight = config.VerticalLaunchHeight;
+            proj.TurnRate = config.TurnRate;
 
             // Collider (Approximate based on style)
-            if (visualStyle.Contains("Tracer"))
+            if (config.ProjectileStyle.Contains("Tracer"))
             {
                 var col = go.AddComponent<CapsuleCollider>();
                 col.direction = 2; // Z-axis
@@ -209,60 +213,15 @@ namespace NavalCommand.Utils
 
         private static void GenerateWeaponStats()
         {
-            // Flagship Gun: Reliable, medium range, slow turn, low spread
-            CreateWeaponStats("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, 
-                WeaponConstants.FlagshipGun.Range, 
-                WeaponConstants.FlagshipGun.Cooldown, 
-                WeaponConstants.FlagshipGun.Damage, 
-                WeaponConstants.FlagshipGun.ProjectileSpeed, 
-                "Projectile_FlagshipGun", 
-                WeaponConstants.FlagshipGun.RotationSpeed, 
-                WeaponConstants.FlagshipGun.Spread);
-            
-            // Missile: Long range, slow reload, high damage, medium turn
-            CreateWeaponStats("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, 
-                WeaponConstants.Missile.Range, 
-                WeaponConstants.Missile.Cooldown, 
-                WeaponConstants.Missile.Damage, 
-                WeaponConstants.Missile.ProjectileSpeed, 
-                "Projectile_Missile", 
-                WeaponConstants.Missile.RotationSpeed, 
-                WeaponConstants.Missile.Spread);
-            
-            // Torpedo: Medium range, very slow reload, massive damage, slow turn
-            CreateWeaponStats("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, 
-                WeaponConstants.Torpedo.Range, 
-                WeaponConstants.Torpedo.Cooldown, 
-                WeaponConstants.Torpedo.Damage, 
-                WeaponConstants.Torpedo.ProjectileSpeed, 
-                "Projectile_Torpedo", 
-                WeaponConstants.Torpedo.RotationSpeed, 
-                WeaponConstants.Torpedo.Spread);
-            
-            // Autocannon: Short range, rapid fire, suppression, fast turn
-            CreateWeaponStats("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, 
-                WeaponConstants.Autocannon.Range, 
-                WeaponConstants.Autocannon.Cooldown, 
-                WeaponConstants.Autocannon.Damage, 
-                WeaponConstants.Autocannon.ProjectileSpeed, 
-                "Projectile_Autocannon", 
-                WeaponConstants.Autocannon.RotationSpeed, 
-                WeaponConstants.Autocannon.Spread);
-            
-            // CIWS: Very short range, extreme fire rate, defense, very fast turn
-            CreateWeaponStats("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, 
-                WeaponConstants.CIWS.Range, 
-                WeaponConstants.CIWS.Cooldown, 
-                WeaponConstants.CIWS.Damage, 
-                WeaponConstants.CIWS.ProjectileSpeed, 
-                "Projectile_CIWS", 
-                WeaponConstants.CIWS.RotationSpeed, 
-                WeaponConstants.CIWS.Spread);
+            foreach (var config in WeaponRegistry.AllWeapons)
+            {
+                CreateWeaponStats(config);
+            }
         }
 
-        private static void CreateWeaponStats(string name, string displayName, WeaponType type, float range, float cooldown, float damage, float speed, string projectileName, float rotationSpeed, float spread)
+        private static void CreateWeaponStats(WeaponConfig config)
         {
-            string path = $"Assets/_Project/Data/Weapons/{name}.asset";
+            string path = $"Assets/_Project/Data/Weapons/{config.ID}.asset";
             WeaponStatsSO so = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(path);
             
             if (so == null)
@@ -271,22 +230,23 @@ namespace NavalCommand.Utils
                 AssetDatabase.CreateAsset(so, path);
             }
 
-            so.DisplayName = displayName;
-            so.Type = type;
-            so.Range = range;
-            so.Cooldown = cooldown;
-            so.Damage = damage;
-            so.ProjectileSpeed = speed;
-            so.GravityMultiplier = 1f; // Default to 1, System will override if needed
-            so.RotationSpeed = rotationSpeed;
-            so.Spread = spread;
+            so.DisplayName = config.DisplayName;
+            so.Type = config.Type;
+            so.TargetType = config.TargetType;
+            so.SetBaseRange(config.Range);
+            so.SetBaseCooldown(config.Cooldown);
+            so.SetBaseDamage(config.Damage);
+            so.SetBaseProjectileSpeed(config.ProjectileSpeed);
+            so.SetBaseGravityMultiplier(1f); // Default to 1
+            so.SetBaseRotationSpeed(config.RotationSpeed);
+            so.SetBaseSpread(config.Spread);
             
-            string projPath = $"Assets/_Project/Prefabs/Projectiles/{projectileName}.prefab";
+            string projPath = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
             
             // Default mask (Everything)
             so.TargetMask = ~0; 
-
+            
             EditorUtility.SetDirty(so);
         }
 
