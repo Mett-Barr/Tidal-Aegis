@@ -128,18 +128,11 @@ namespace NavalCommand.Utils
             }
 
             // 4. Add Components to Root if missing
-            // Update Collider on Root
-            var col = GetComponent<BoxCollider>();
-            if (col == null)
-            {
-                col = gameObject.AddComponent<BoxCollider>();
-            }
-            // Dynamic Collider Size based on Hull Dimensions
-            // Note: W, H_hull, H_super, L are local to CreateHullModule.
-            // For now, using hardcoded values or class members if available.
-            // To make this truly dynamic, CreateHullModule would need to return these dimensions.
-            col.size = new Vector3(5f, 3f, 20f); // Placeholder, ideally derived from hullModule
-            col.center = new Vector3(0, 1.5f, 0); // Placeholder
+            // Note: We now use child colliders (Hull MeshCollider + Turret Primitives)
+            // So we do NOT need a root BoxCollider anymore.
+            // This allows for precise "Mesh-Accurate" collision.
+            var oldCol = GetComponent<BoxCollider>();
+            if (oldCol != null) DestroyImmediate(oldCol);
         }
 
         // Force Recompile Check 2
@@ -408,6 +401,11 @@ namespace NavalCommand.Utils
             // CRITICAL: Use sharedMesh for Asset assignment
             mf.sharedMesh = GenerateHexagonalHull(W, H_hull, L);
 
+            // Add MeshCollider for accurate Hull collision
+            MeshCollider mc = hullMeshObj.AddComponent<MeshCollider>();
+            mc.sharedMesh = mf.sharedMesh;
+            mc.convex = true; // Required for non-kinematic Rigidbody interaction
+
             // 2. Place Components
             // All components sit on Main Deck (Y=0)
             
@@ -602,10 +600,10 @@ namespace NavalCommand.Utils
             obj.transform.localRotation = Quaternion.Euler(localRot);
             obj.transform.localScale = scale;
             
-            if (parent.name.StartsWith("Weapon") || parent.name.StartsWith("Hull"))
-            {
-                DestroyImmediate(obj.GetComponent<Collider>());
-            }
+            // ARCHITECTURAL CHANGE: Enable Colliders on Primitives
+            // This allows projectiles to hit the specific parts (Turret, Barrel, Island) 
+            // instead of just the center or a bounding box.
+            // DestroyImmediate(obj.GetComponent<Collider>());
 
             return obj;
         }
