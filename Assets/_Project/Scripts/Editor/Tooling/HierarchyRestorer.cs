@@ -4,6 +4,7 @@ using NavalCommand.Core;
 using NavalCommand.Systems;
 using NavalCommand.UI;
 using NavalCommand.Entities.Units;
+using NavalCommand.Entities.Projectiles;
 using NavalCommand.Data;
 using UnityEngine.EventSystems;
 
@@ -17,6 +18,7 @@ namespace NavalCommand.Editor.Tooling
 
             // Ensure Data Integrity
             NavalCommand.Utils.ContentGenerator.RebuildAllContent(); // Regenerate all assets to fix 0-values
+            FixProjectilePrefabs(); // Fix duplicate components on prefabs
 
             RestorePoolManager(); // Infrastructure first
             RestoreWorldPhysicsSystem(); // Physics first
@@ -248,6 +250,51 @@ namespace NavalCommand.Editor.Tooling
                 light.type = LightType.Directional;
                 go.transform.rotation = Quaternion.Euler(50, -30, 0);
                 Debug.Log("Created Directional Light");
+            }
+        }
+
+        public static void FixProjectilePrefabs()
+        {
+            string[] projectileNames = new string[]
+            {
+                "Projectile_CIWS",
+                "Projectile_Autocannon",
+                "Projectile_FlagshipGun",
+                "Projectile_Missile",
+                "Projectile_Torpedo"
+            };
+
+            foreach (string name in projectileNames)
+            {
+                string path = $"Assets/_Project/Prefabs/Projectiles/{name}.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                
+                if (prefab != null)
+                {
+                    // We need to instantiate to modify components safely, then save back
+                    // OR use PrefabUtility.LoadPrefabContents
+                    GameObject contents = PrefabUtility.LoadPrefabContents(path);
+                    
+                    var components = contents.GetComponents<ProjectileBehavior>();
+                    if (components.Length > 1)
+                    {
+                        Debug.LogWarning($"[HierarchyRestorer] Found {components.Length} ProjectileBehavior components on {name}. Removing duplicates...");
+                        
+                        // Keep the last one (usually the one added later/modified) or the one with valid settings
+                        // For CIWS, we saw the second one had valid settings.
+                        // Let's keep the one with non-zero speed if possible, or just the last one.
+                        
+                        for (int i = 0; i < components.Length - 1; i++)
+                        {
+                            Object.DestroyImmediate(components[i]);
+                        }
+                        
+                        Debug.Log($"[HierarchyRestorer] Fixed {name} (Removed {components.Length - 1} duplicates).");
+                        PrefabUtility.SaveAsPrefabAsset(contents, path);
+                    }
+                    
+                    PrefabUtility.UnloadPrefabContents(contents);
+                }
             }
         }
 

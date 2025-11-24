@@ -67,8 +67,8 @@ namespace NavalCommand.Systems.Movement
             }
 
             // Split Turn Rates (Scaled)
-            float cruiseTurnRate = 180f * scaleFactor; // Agile
-            float terminalTurnRate = 60f * scaleFactor; // Smooth
+            float cruiseTurnRate = 300f * scaleFactor; // Very Agile in Cruise
+            float terminalTurnRate = 120f * scaleFactor; // Sharper Terminal Homing
             float currentTurnRate = cruiseTurnRate; // Default to cruise
             
             float navConstant = 3f; // Unused in Predictive Pursuit
@@ -125,8 +125,13 @@ namespace NavalCommand.Systems.Movement
                     }
 
                     Vector3 dirToTarget = (targetPos - currentPos).normalized;
+                    float distToTarget = Vector3.Distance(currentPos, targetPos);
                     
-                    if (Vector3.Distance(currentPos, targetPos) < terminalDist)
+                    // Transition to Terminal if close OR if angle is steep (diving)
+                    // This prevents flying over the target while trying to maintain cruise height
+                    float angleToTarget = Vector3.Angle(forward, dirToTarget);
+                    
+                    if (distToTarget < terminalDist || (distToTarget < terminalDist * 2f && angleToTarget > 45f))
                     {
                         phase = 2; // Switch to Terminal
                     }

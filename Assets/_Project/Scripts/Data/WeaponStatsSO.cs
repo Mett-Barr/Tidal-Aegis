@@ -97,6 +97,15 @@ namespace NavalCommand.Data
         public float Spread => _useOverrideSpread ? _overrideSpread : _baseSpread;
         public void SetBaseSpread(float val) => _baseSpread = val;
 
+        // ---------------------------------------------------------------------
+        // Firing Angle Tolerance (Degrees)
+        // ---------------------------------------------------------------------
+        [SerializeField] private float _baseFiringAngleTolerance = 5f;
+        [SerializeField] private float _overrideFiringAngleTolerance;
+        [SerializeField] private bool _useOverrideFiringAngleTolerance;
+        public float FiringAngleTolerance => _useOverrideFiringAngleTolerance ? _overrideFiringAngleTolerance : _baseFiringAngleTolerance;
+        public void SetBaseFiringAngleTolerance(float val) => _baseFiringAngleTolerance = val;
+
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;
         public LayerMask TargetMask;

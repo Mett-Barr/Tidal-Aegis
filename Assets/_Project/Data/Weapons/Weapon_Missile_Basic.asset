@@ -39,7 +39,10 @@ MonoBehaviour:
   _baseSpread: 0
   _overrideSpread: 0
   _useOverrideSpread: 0
-  ProjectilePrefab: {fileID: 5853042828296539165, guid: e0946eafee698da49add6955c5d9fd5f,
+  _baseFiringAngleTolerance: 5
+  _overrideFiringAngleTolerance: 0
+  _useOverrideFiringAngleTolerance: 0
+  ProjectilePrefab: {fileID: 8495123334323704955, guid: e0946eafee698da49add6955c5d9fd5f,
     type: 3}
   TargetMask:
     serializedVersion: 2

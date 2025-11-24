@@ -490,6 +490,12 @@ namespace NavalCommand.Utils
             so.SetBaseRotationSpeed(config.RotationSpeed);
             so.SetBaseSpread(config.Spread);
             
+            // Set Firing Tolerance
+            // Reverted to strict 5 degrees for all weapons per user request
+            so.SetBaseFiringAngleTolerance(5f);
+
+            // AimingMode removed from WeaponStatsSO in favor of component-based logic (TurretRotator)
+
             string projPath = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
             
@@ -556,6 +562,12 @@ namespace NavalCommand.Utils
                     firePoint.SetParent(weaponVisual.transform);
                     // Move it further forward (z=4) and higher (y=2) to clear the hull collider
                     firePoint.localPosition = new Vector3(0, 2f, 4f); 
+                    
+                    // CRITICAL: If Missile, point UP
+                    if (weaponType == WeaponType.Missile)
+                    {
+                        firePoint.localRotation = Quaternion.Euler(-90, 0, 0);
+                    }
                 }
 
                 WeaponController wc = weaponVisual.AddComponent<WeaponController>();
@@ -563,6 +575,21 @@ namespace NavalCommand.Utils
                 wc.WeaponStats = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>(statsPath);
                 wc.FirePoint = firePoint;
                 wc.OwnerTeam = NavalCommand.Core.Team.Enemy;
+
+                // Configure TurretRotator based on Platform Type
+                TurretRotator rotator = weaponVisual.AddComponent<TurretRotator>();
+                rotator.Initialize(weaponVisual.transform, firePoint);
+                
+                if (weaponType == WeaponType.Missile)
+                {
+                    rotator.CanRotate = false;
+                    rotator.IsVerticalLaunch = true;
+                }
+                else
+                {
+                    rotator.CanRotate = true;
+                    rotator.IsVerticalLaunch = false;
+                }
             }
             else
             {
@@ -726,6 +753,21 @@ namespace NavalCommand.Utils
                 // But WeaponController reads OwnerTeam.
                 // Let's set it to Player by default here, but ensure it gets updated by the Unit Controller.
                 wc.OwnerTeam = NavalCommand.Core.Team.Player; 
+
+                // Configure TurretRotator based on Platform Type
+                TurretRotator rotator = weaponVisual.AddComponent<TurretRotator>();
+                rotator.Initialize(weaponVisual.transform, firePoint);
+                
+                if (type == WeaponType.Missile)
+                {
+                    rotator.CanRotate = false;
+                    rotator.IsVerticalLaunch = true;
+                }
+                else
+                {
+                    rotator.CanRotate = true;
+                    rotator.IsVerticalLaunch = false;
+                }
             }
             else
             {

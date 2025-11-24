@@ -21,6 +21,7 @@ namespace NavalCommand.Editor.Tooling
 
             // Advanced Tools (Consolidated)
             reg.Register("進階工具 (Advanced)", "重建所有資源 (Rebuild All)", ContentGenerator.RebuildAllContent, "重新生成所有船艦、武器數據與設定檔 (修復數據錯誤)。");
+            reg.Register("進階工具 (Advanced)", "修復投射物 (Fix Projectiles)", HierarchyRestorer.FixProjectilePrefabs, "修復投射物預製件的重複組件錯誤 (解決 CIWS 不開火問題)。");
             reg.Register("進階工具 (Advanced)", "驗證系統 (Validate)", InteractionSystemValidator.ShowWindow, "檢查系統設定是否正確。");
             
             // Removed redundant individual generation tools as they are covered by RebuildAllContent or RestoreHierarchy

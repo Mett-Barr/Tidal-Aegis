@@ -25,7 +25,7 @@ namespace NavalCommand.Entities.Projectiles
         // Custom Data for Logic (packed into State)
         // CustomData for Logic (packed into State)
         public float CruiseHeight = 40f; // Higher cruise for Top Attack
-        public float TerminalHomingDistance = 120f; // Start dive earlier for smoother intercept
+        public float TerminalHomingDistance = 50f; // Start dive earlier for smoother intercept
         public float VerticalLaunchHeight = 15f; // Distinct VLS phase
         public float TurnRate = 2f; // Unused by functional logic (hardcoded there)
 
@@ -148,7 +148,7 @@ namespace NavalCommand.Entities.Projectiles
             }
 
             // VLS Override: If this is a VLS missile, force it to launch UP regardless of turret aim
-            // DISABLED: This was previously broken (dead code) and enabling it caused regression.
+            // DISABLED: User requested platform-driven logic. FirePoint rotation determines launch vector.
             // if (MovementLogicName == "GuidedMissile" && VerticalLaunchHeight > 1.0f)
             // {
             //     _currentState.Velocity = Vector3.up * velocity.magnitude;
