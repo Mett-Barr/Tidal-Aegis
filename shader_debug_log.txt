@@ -1,0 +1,11 @@
+--- Shader Debugger ---
+Current Render Pipeline: UniversalRenderPipelineAsset
+[FOUND] Universal Render Pipeline/Lit
+[FOUND] Universal Render Pipeline/Simple Lit
+[FOUND] Universal Render Pipeline/Unlit
+[FOUND] Universal Render Pipeline/Particles/Unlit
+[FOUND] Universal Render Pipeline/Particles/Simple Lit
+[FOUND] Particles/Standard Unlit
+[FOUND] Standard
+[FOUND] Mobile/Particles/Alpha Blended
+--- End Debug ---

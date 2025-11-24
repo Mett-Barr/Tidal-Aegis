@@ -1,0 +1,22 @@
+--- Material Debugger ---
+Material: VFX_Mat_Splash
+  Shader: Universal Render Pipeline/Particles/Unlit
+  Render Queue: 3000
+  Has _BaseColor: True
+  Has _Color: True
+Material: VFX_Mat_Explosion
+  Shader: Universal Render Pipeline/Particles/Unlit
+  Render Queue: 3000
+  Has _BaseColor: True
+  Has _Color: True
+Material: VFX_Mat_Sparks
+  Shader: Universal Render Pipeline/Particles/Unlit
+  Render Queue: 3000
+  Has _BaseColor: True
+  Has _Color: True
+Material: VFX_Mat_ExplosionSmall
+  Shader: Universal Render Pipeline/Particles/Unlit
+  Render Queue: 3000
+  Has _BaseColor: True
+  Has _Color: True
+--- End Debug ---

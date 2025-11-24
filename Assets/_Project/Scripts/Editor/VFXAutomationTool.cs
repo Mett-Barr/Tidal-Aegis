@@ -9,7 +9,7 @@ namespace NavalCommand.Editor
         private const string MATERIAL_PATH = "Assets/_Project/Generated/Materials";
         private const string PREFAB_PATH = "Assets/_Project/Prefabs/VFX";
 
-        // [MenuItem("Tools/Naval Command/Rebuild VFX Assets")]
+        [MenuItem("Tools/Naval Command/Rebuild VFX Assets")]
         public static void RebuildVFXAssets()
         {
             EnsureDirectoryExists(MATERIAL_PATH);
@@ -23,6 +23,9 @@ namespace NavalCommand.Editor
             
             // Splash: Blue/White (Water) - Unchanged
             Material matSplash = CreateMaterial("VFX_Mat_Splash", new Color(0.5f, 0.8f, 1f, 0.5f), false);
+            
+            // Sparks: Yellow (Kinetic)
+            Material matSparks = CreateMaterial("VFX_Mat_Sparks", Color.yellow, true);
 
             // 2. Link to Prefabs & Configure Particles
             LinkMaterialToPrefab("VFX_Explosion_Medium.prefab", matExplosion);
@@ -31,6 +34,7 @@ namespace NavalCommand.Editor
             LinkMaterialToPrefab("VFX_Explosion_Small.prefab", matExplosionSmall, 5.0f, 1.0f);
             
             LinkMaterialToPrefab("VFX_Splash_Water.prefab", matSplash);
+            LinkMaterialToPrefab("VFX_Sparks_Kinetic.prefab", matSparks);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -64,6 +68,10 @@ namespace NavalCommand.Editor
             mat.SetColor("_BaseColor", color);
             mat.SetColor("_Color", color); // Some shaders use _Color
             mat.SetColor("_EmissionColor", color); // Emission for glow
+            
+            // CRITICAL: URP Particles Unlit often needs a BaseMap even if just white
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", Texture2D.whiteTexture);
 
             // Transparency Settings
             mat.SetFloat("_Surface", 1.0f); // 1 = Transparent

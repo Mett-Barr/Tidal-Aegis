@@ -1142,24 +1142,21 @@ namespace NavalCommand.Utils
             Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             
             // Smart Shader Selection (Aggressive)
-            // User confirmed "Projectile Model Rendering" (using Lit) works.
-            // So we will prioritize Lit shaders even for VFX to ensure they are visible.
+            // We prioritize URP Particle shaders because they are most likely to work in a modern URP project.
+            // We do NOT check currentRenderPipeline because it might be null in Editor/EditMode.
+            
             Shader shader = null;
-            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline;
             
-            if (pipeline != null && pipeline.GetType().Name.Contains("Universal"))
-            {
-                // 1. Try Lit (Confirmed working for models)
-                shader = Shader.Find("Universal Render Pipeline/Lit");
-                // 2. Try Simple Lit
-                if (shader == null) shader = Shader.Find("Universal Render Pipeline/Simple Lit");
-                // 3. Try Unlit (Generic)
-                if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
-                // 4. Try Particles/Unlit (Standard URP Particle)
-                if (shader == null) shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            }
+            // 1. Try URP Particles Unlit (Best for simple colored VFX)
+            shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
             
-            // Fallbacks
+            // 2. Try URP Particles Simple Lit
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Particles/Simple Lit");
+            
+            // 3. Try URP Lit (Generic)
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Lit");
+            
+            // 4. Try Built-in Particles (Fallback)
             if (shader == null) shader = Shader.Find("Particles/Standard Unlit");
             if (shader == null) shader = Shader.Find("Sprites/Default");
             if (shader == null) shader = Shader.Find("Legacy Shaders/Particles/Alpha Blended");
@@ -1174,9 +1171,17 @@ namespace NavalCommand.Utils
                 if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
                 if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color);
                 
+                // CRITICAL: URP Particles Unlit often needs a BaseMap even if just white
+                if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+                if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", Texture2D.whiteTexture);
+
                 // Force Transparency for URP Lit/Unlit if possible (Mode 1 = Transparent)
                 if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1.0f);
                 if (mat.HasProperty("_Blend")) mat.SetFloat("_Blend", 0.0f); // Alpha
+                
+                // Enable Keywords
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.EnableKeyword("_ALPHATEST_ON"); // Sometimes needed
                 
                 AssetDatabase.CreateAsset(mat, path);
                 Debug.Log($"[ContentGenerator] Created material {name} with shader: {shader.name}");
@@ -1190,9 +1195,16 @@ namespace NavalCommand.Utils
                 if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
                 if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color);
                 
+                // CRITICAL: URP Particles Unlit often needs a BaseMap even if just white
+                if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+                if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", Texture2D.whiteTexture);
+
                 // Force Transparency
                 if (mat.HasProperty("_Surface")) mat.SetFloat("_Surface", 1.0f);
                 if (mat.HasProperty("_Blend")) mat.SetFloat("_Blend", 0.0f);
+                
+                // Enable Keywords
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
                 
                 EditorUtility.SetDirty(mat);
                 Debug.Log($"[ContentGenerator] Updated material {name} with shader: {shader.name}");
