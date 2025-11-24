@@ -267,9 +267,19 @@ namespace NavalCommand.Entities.Components
                 float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
                 
                 // Calculate Ballistic Gravity
-                float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+        float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+        
+        // Apply Multiplier
+        if (WeaponStats.GravityMultiplier < 0.01f)
+        {
+            gravityY = 0f;
+        }
+        else
+        {
+            gravityY *= WeaponStats.GravityMultiplier;
+        }
 
-                Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
+        Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
 
                 projectile.Owner = ownerObj;
                 projectile.Target = ((MonoBehaviour)target).transform;

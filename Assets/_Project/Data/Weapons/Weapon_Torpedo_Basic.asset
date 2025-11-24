@@ -30,7 +30,7 @@ MonoBehaviour:
   _baseProjectileSpeed: 28
   _overrideProjectileSpeed: 0
   _useOverrideProjectileSpeed: 0
-  _baseGravityMultiplier: 1
+  _baseGravityMultiplier: 0
   _overrideGravityMultiplier: 0
   _useOverrideGravityMultiplier: 0
   _baseRotationSpeed: 30
@@ -42,7 +42,7 @@ MonoBehaviour:
   _baseFiringAngleTolerance: 5
   _overrideFiringAngleTolerance: 0
   _useOverrideFiringAngleTolerance: 0
-  ProjectilePrefab: {fileID: 2861418956142609840, guid: 4399fc60eecf23645b085487d030e300,
+  ProjectilePrefab: {fileID: 5132821162546669759, guid: 4399fc60eecf23645b085487d030e300,
     type: 3}
   TargetMask:
     serializedVersion: 2

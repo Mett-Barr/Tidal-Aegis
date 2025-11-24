@@ -477,13 +477,14 @@ namespace NavalCommand.Utils
             so.SetBaseProjectileSpeed(config.ProjectileSpeed);
             so.ImpactProfile = config.ImpactProfile;
             
-            // CIWS should be near-instant/laser-like, so 0 gravity
-            if (config.Type == WeaponType.CIWS)
+            // 4. Gravity Multiplier (0 for Missiles/Torpedoes, 1 for Guns)
+            if (config.Type == WeaponType.Missile || config.Type == WeaponType.Torpedo)
             {
                 so.SetBaseGravityMultiplier(0f);
             }
             else
             {
+                // CIWS, Autocannon, FlagshipGun use gravity
                 so.SetBaseGravityMultiplier(1f);
             }
             

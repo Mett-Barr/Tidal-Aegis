@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44629c1e0c89fe4428cd4a033b54f086, type: 3}
   m_Name: PhysicsConfig
   m_EditorClassIdentifier: 
-  GlobalSpeedScale: 0.05
+  GlobalSpeedScale: 0.2
   GlobalRangeScale: 1
   StandardGravity: 9.81
