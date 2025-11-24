@@ -76,6 +76,12 @@ namespace NavalCommand.Entities.Units
             
             if (maxRange > 0)
             {
+                // Use Scaled Range if System exists
+                if (Systems.WorldPhysicsSystem.Instance != null)
+                {
+                    maxRange = Systems.WorldPhysicsSystem.Instance.GetScaledRange(maxRange);
+                }
+
                 // Stay at 80% of max range to ensure reliable firing
                 AttackRange = maxRange * 0.8f; 
             }

@@ -16,17 +16,14 @@ namespace NavalCommand.Editor.Tooling
         {
             var reg = EditorToolRegistry.Instance;
 
-            // World Generation
-            reg.Register("World Generation", "Rebuild World (Force Update)", ContentGenerator.RebuildAllContent, "Regenerates all ships, weapons, and configs.");
-            reg.Register("World Generation", "Generate Empty Hulls", ContentGenerator.GenerateEmptyHulls, "Creates empty hull prefabs for all weight classes.");
-            reg.Register("World Generation", "Generate HUD", ContentGenerator.GenerateHUD, "Rebuilds the HUD UI.");
+            // Scene Management (Primary Tool)
+            reg.Register("場景管理 (Scene)", "一鍵還原場景 (Restore Hierarchy)", HierarchyRestorer.RestoreHierarchy, "還原所有必要的場景物件 (GameManager, SpawningSystem, UI, Camera, Physics) 並修復設定。");
 
-            // Interaction System
-            reg.Register("Interaction System", "Generate Weapon Assets", AssetGenerator.Generate, "Migrates WeaponRegistry to ScriptableObjects.");
-            reg.Register("Interaction System", "Validate System", InteractionSystemValidator.ShowWindow, "Checks for configuration errors.");
-
-            // VFX
-            reg.Register("VFX", "Rebuild VFX Assets", VFXAutomationTool.RebuildVFXAssets, "Regenerates materials and assigns them to prefabs.");
+            // Advanced Tools (Consolidated)
+            reg.Register("進階工具 (Advanced)", "重建所有資源 (Rebuild All)", ContentGenerator.RebuildAllContent, "重新生成所有船艦、武器數據與設定檔 (修復數據錯誤)。");
+            reg.Register("進階工具 (Advanced)", "驗證系統 (Validate)", InteractionSystemValidator.ShowWindow, "檢查系統設定是否正確。");
+            
+            // Removed redundant individual generation tools as they are covered by RebuildAllContent or RestoreHierarchy
         }
     }
 }

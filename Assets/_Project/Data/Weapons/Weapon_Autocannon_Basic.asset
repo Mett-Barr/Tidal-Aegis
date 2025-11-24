@@ -39,7 +39,7 @@ MonoBehaviour:
   _baseSpread: 0.8
   _overrideSpread: 0
   _useOverrideSpread: 0
-  ProjectilePrefab: {fileID: 5822545561643397229, guid: 92c3ff537503e814eb111d674bca27a0,
+  ProjectilePrefab: {fileID: 7768457111495640, guid: 92c3ff537503e814eb111d674bca27a0,
     type: 3}
   TargetMask:
     serializedVersion: 2
