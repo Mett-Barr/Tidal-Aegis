@@ -3,7 +3,7 @@ using UnityEditor;
 
 public class MaterialDebugger
 {
-    [MenuItem("NavalCommand/Debug/Check VFX Materials")]
+    // [MenuItem("NavalCommand/Debug/Check VFX Materials")]
     public static void CheckVFXMaterials()
     {
         string[] matNames = new string[]

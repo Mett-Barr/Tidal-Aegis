@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 public class ShaderDebugger
 {
-    [MenuItem("NavalCommand/Debug/Check Shaders")]
+    // [MenuItem("NavalCommand/Debug/Check Shaders")]
     public static void CheckShaders()
     {
         System.Text.StringBuilder sb = new System.Text.StringBuilder();

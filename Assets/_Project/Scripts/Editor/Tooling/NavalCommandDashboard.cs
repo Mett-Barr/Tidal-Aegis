@@ -5,7 +5,7 @@ namespace NavalCommand.Editor.Tooling
 {
     public class NavalCommandDashboard : EditorWindow
     {
-        [MenuItem("Naval Command/Dashboard", priority = 0)]
+        [MenuItem("Naval Command/Open Dashboard %#d", priority = 0)]
         public static void Open()
         {
             GetWindow<NavalCommandDashboard>("NC Dashboard");
