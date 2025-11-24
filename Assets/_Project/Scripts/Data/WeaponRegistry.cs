@@ -93,7 +93,7 @@ namespace NavalCommand.Data
             ProjectileColor = Color.white,
             ProjectileStyle = "Tracer_Small",
             MovementLogicName = "Linear",
-            ImpactProfile = new ImpactProfile(ImpactCategory.Kinetic, ImpactSize.Small)
+            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Small)
         };
 
         static WeaponRegistry()

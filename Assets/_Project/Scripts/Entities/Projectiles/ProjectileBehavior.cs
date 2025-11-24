@@ -272,6 +272,13 @@ namespace NavalCommand.Entities.Projectiles
 
             if (Physics.SphereCast(transform.position, radius, _currentState.Velocity.normalized, out RaycastHit hit, checkDistance))
             {
+                // Ignore Friendly Projectiles to prevent self-detonation/log spam
+                var otherProjectile = hit.collider.GetComponent<ProjectileBehavior>();
+                if (otherProjectile != null && otherProjectile.ProjectileTeam == ProjectileTeam)
+                {
+                    return;
+                }
+
                 HandleImpact(hit);
             }
         }
@@ -286,14 +293,14 @@ namespace NavalCommand.Entities.Projectiles
                 // VFX
                 if (NavalCommand.Systems.VFX.VFXManager.Instance != null)
                 {
-                    var context = new NavalCommand.Systems.VFX.HitContext(
+                    var context = new NavalCommand.Systems.VFX.ImpactPayload(
                         ImpactProfile,
                         NavalCommand.Systems.VFX.SurfaceType.Water,
                         transform.position,
                         Vector3.up
                     );
                     NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(context);
-                    Debug.Log($"[ProjectileBehavior] Spawning Water Splash at {transform.position}");
+                    // Debug.Log($"[ProjectileBehavior] Spawning Water Splash at {transform.position}");
                 }
 
                 Despawn();
@@ -314,7 +321,7 @@ namespace NavalCommand.Entities.Projectiles
                     
                     if (damageable.GetUnitType() == UnitType.Missile)
                     {
-                        Debug.Log($"<color=green>[INTERCEPTION]</color> Intercepted {hit.collider.name}");
+                        Debug.Log($"<color=green>[INTERCEPTION]</color> CIWS Intercepted {hit.collider.name} at {hit.point}");
                     }
                 }
                 else
@@ -327,14 +334,15 @@ namespace NavalCommand.Entities.Projectiles
             if (NavalCommand.Systems.VFX.VFXManager.Instance != null)
             {
                 var surface = NavalCommand.Systems.VFX.SurfaceResolver.Resolve(hit.collider);
-                var context = new NavalCommand.Systems.VFX.HitContext(
+                var context = new NavalCommand.Systems.VFX.ImpactPayload(
                     ImpactProfile,
                     surface,
                     hit.point,
                     hit.normal
                 );
+                
+                Debug.Log($"[ProjectileBehavior] Spawning Impact VFX ({ImpactProfile.Category}, {ImpactProfile.Size} on {surface}) at {hit.point}");
                 NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(context);
-                Debug.Log($"[ProjectileBehavior] Spawning Impact VFX ({ImpactProfile} on {surface}) at {hit.point}");
             }
 
             Despawn();

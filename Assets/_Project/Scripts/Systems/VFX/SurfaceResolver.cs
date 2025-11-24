@@ -1,64 +1,35 @@
 using UnityEngine;
-using NavalCommand.Entities.Units;
-using NavalCommand.Core;
 
 namespace NavalCommand.Systems.VFX
 {
     public static class SurfaceResolver
     {
-        // Cache Layer indices for performance
-        private static int _waterLayer = -1;
-        private static int _unitLayer = -1;
-        // Force Recompile Timestamp: 1
-        private static void InitializeLayers()
-        {
-            if (_waterLayer == -1) _waterLayer = LayerMask.NameToLayer("Water");
-            if (_unitLayer == -1) _unitLayer = LayerMask.NameToLayer("Unit"); // Assuming 'Unit' or similar exists, fallback to check component
-        }
-
         public static SurfaceType Resolve(Collider collider)
         {
-            InitializeLayers();
-
             if (collider == null) return SurfaceType.Default;
 
-            int layer = collider.gameObject.layer;
-
-            // 1. Check Water
-            if (layer == _waterLayer)
+            // 1. Check Layer (Water -> Water)
+            // Assuming "Water" layer is index 4 (standard) or named "Water"
+            if (collider.gameObject.layer == LayerMask.NameToLayer("Water"))
             {
                 return SurfaceType.Water;
             }
 
-            // 2. Check Unit/Armor
-            // We can check layer, or look for IDamageable/BaseUnit component
-            // 2. Check Unit/Armor
-            // We can check layer, or look for IDamageable/BaseUnit component
-            var unit = collider.GetComponentInParent<BaseUnit>();
-            if (unit != null)
+            // 2. Check Tag (Metal/Wood/etc)
+            switch (collider.tag)
             {
-                UnitType type = unit.GetUnitType();
-                if (type == UnitType.Missile || type == UnitType.Aircraft)
-                {
-                    return SurfaceType.Air;
-                }
-                // In the future, we can check specific armor types on the unit
-                return SurfaceType.Armor_Metal;
+                case "Water":
+                    return SurfaceType.Water;
+                case "Metal":
+                case "Ship":
+                case "Player":
+                case "Enemy":
+                    return SurfaceType.Armor_Metal;
+                case "Wood":
+                    return SurfaceType.Default; // Fallback for now
+                default:
+                    return SurfaceType.Armor_Metal; // Default for combatants
             }
-
-            // 3. Check Tags (Fallback)
-            // 3. Check Tags (Fallback) - Use .tag string comparison to avoid "Tag not defined" exception
-            if (collider.tag == "Water") return SurfaceType.Water;
-            if (collider.tag == "Player" || collider.tag == "Enemy") return SurfaceType.Armor_Metal;
-
-            return SurfaceType.Default;
-        }
-
-        public static SurfaceType Resolve(int layer)
-        {
-            InitializeLayers();
-            if (layer == _waterLayer) return SurfaceType.Water;
-            return SurfaceType.Default;
         }
     }
 }

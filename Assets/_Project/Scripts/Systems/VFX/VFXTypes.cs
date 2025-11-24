@@ -41,24 +41,36 @@ namespace NavalCommand.Systems.VFX
         }
     }
 
-    public struct HitContext
+    public struct ImpactPayload
     {
         public ImpactProfile Impact;
         public SurfaceType Surface;
         public Vector3 Position;
         public Vector3 Normal;
         
+        // Unified Payload Fields
+        public GameObject Attacker;
+        public GameObject Target;
+        public Vector3 VelocityDir;
+        public float HitAngle;
+
         // Flags for special handling
         public bool IsRicochet;
         public bool IsAirburst;
         public bool IsDud;
 
-        public HitContext(ImpactProfile impact, SurfaceType surface, Vector3 position, Vector3 normal)
+        public ImpactPayload(ImpactProfile impact, SurfaceType surface, Vector3 position, Vector3 normal)
         {
             Impact = impact;
             Surface = surface;
             Position = position;
             Normal = normal;
+            
+            Attacker = null;
+            Target = null;
+            VelocityDir = Vector3.zero;
+            HitAngle = 0f;
+            
             IsRicochet = false;
             IsAirburst = false;
             IsDud = false;

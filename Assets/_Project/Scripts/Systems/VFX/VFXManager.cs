@@ -27,7 +27,7 @@ namespace NavalCommand.Systems.VFX
             }
         }
 
-        public void SpawnVFX(HitContext context)
+        public void SpawnVFX(ImpactPayload context)
         {
             if (_library == null) return;
 

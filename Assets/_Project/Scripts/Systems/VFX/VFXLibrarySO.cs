@@ -28,7 +28,7 @@ namespace NavalCommand.Systems.VFX
         [Tooltip("Higher priority rules are checked first")]
         public int Priority = 0;
 
-        public bool Matches(HitContext context)
+        public bool Matches(ImpactPayload context)
         {
             if (!AnyCategory && Category != context.Impact.Category) return false;
             if (!AnySize && Size != context.Impact.Size) return false;
@@ -44,7 +44,7 @@ namespace NavalCommand.Systems.VFX
         public GameObject FallbackVFX;
         public AudioClip FallbackSFX;
 
-        public VFXRule GetBestRule(HitContext context)
+        public VFXRule GetBestRule(ImpactPayload context)
         {
             // Simple linear search with priority
             // In a production system with hundreds of rules, this could be optimized into a dictionary or lookup tree

@@ -83,7 +83,7 @@ namespace NavalCommand.Infrastructure
             }
             else
             {
-                Debug.LogWarning($"PoolManager: Object {obj.name} was not spawned via PoolManager. Destroying it.");
+                // Debug.LogWarning($"PoolManager: Object {obj.name} was not spawned via PoolManager. Destroying it.");
                 Destroy(obj);
             }
         }
