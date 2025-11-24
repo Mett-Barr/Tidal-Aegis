@@ -163,8 +163,11 @@ namespace NavalCommand.Entities.Projectiles
             }
 
             _lifetimeTimer = 0f;
+            _spawnTime = Time.time; // Track spawn time
             isInitialized = true;
         }
+
+        private float _spawnTime;
 
         private MovementLogic ResolveLogic(string name)
         {
@@ -264,8 +267,8 @@ namespace NavalCommand.Entities.Projectiles
         private void CheckCollision(float distance)
         {
             // Use SphereCast for "Thick" bullets - better for hitting thin missiles
-            // Increased radius to 2.0f (Proximity Fuse) to catch "close misses"
-            float radius = 2.0f; 
+            // Reduced radius from 2.0f to 0.5f to prevent floor/self collisions
+            float radius = 0.5f; 
             
             // Increase check distance slightly to account for target moving TOWARDS us
             float checkDistance = distance + 1.0f;
@@ -310,7 +313,11 @@ namespace NavalCommand.Entities.Projectiles
         private void HandleImpact(RaycastHit hit)
         {
             // Ignore Self/Owner collisions if needed (though SphereCast starts at origin so usually fine)
-            if (Owner != null && (hit.collider.gameObject == Owner || hit.collider.transform.IsChildOf(Owner.transform))) return;
+            if (Owner != null && (hit.collider.gameObject == Owner || hit.collider.transform.IsChildOf(Owner.transform))) 
+            {
+                // Debug.Log($"[Projectile] Ignored collision with Owner: {hit.collider.name}");
+                return;
+            }
 
             IDamageable damageable = hit.collider.GetComponent<IDamageable>();
             if (damageable != null)
@@ -345,12 +352,19 @@ namespace NavalCommand.Entities.Projectiles
                 NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(context);
             }
 
-            Despawn();
+            Despawn($"Impact with {hit.collider.name}");
         }
 
-        private void Despawn()
+        private void Despawn(string reason = "Unknown")
         {
             if (isDespawning) return;
+            
+            // Diagnostic: Check for instant death
+            if (Time.time - _spawnTime < 0.1f)
+            {
+                Debug.LogWarning($"[Projectile DIAGNOSTIC] Projectile {name} (Team: {ProjectileTeam}) DIED INSTANTLY (<0.1s). Reason: {reason}. Pos: {transform.position}");
+            }
+
             isDespawning = true;
             
             if (PoolManager.Instance != null)

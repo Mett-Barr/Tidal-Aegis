@@ -154,11 +154,12 @@ namespace NavalCommand.Entities.Components
             updateTimer = 0f;
 
             // 1. Rotation Logic
-            if (desiredAimVector.HasValue && FirePoint != null)
+            if (desiredAimVector.HasValue)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(desiredAimVector.Value);
                 // Smoothly rotate towards target
-                FirePoint.rotation = Quaternion.RotateTowards(FirePoint.rotation, targetRotation, RotationSpeed * Time.deltaTime * 100f); // *100 to make speed comparable to degrees/sec
+                // Rotate the Turret (transform), not just the FirePoint
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, RotationSpeed * Time.deltaTime * 100f); 
             }
 
             // 2. Cooldown & Firing Logic
@@ -212,12 +213,6 @@ namespace NavalCommand.Entities.Components
 
             // Query Spatial Grid directly for closest target (Optimized)
             Transform closestTarget = SpatialGridSystem.Instance.GetClosestTarget(transform.position, scaledRange, targetTeam, WeaponStats.TargetType);
-            
-            if (currentTarget != closestTarget)
-            {
-                // Target changed
-                // Debug.Log($"[WeaponController] {gameObject.name} acquired target: {closestTarget?.name}");
-            }
             
             currentTarget = closestTarget;
         }
@@ -304,6 +299,13 @@ namespace NavalCommand.Entities.Components
                 {
                     aimVector = solution;
                     hasSolution = true;
+                }
+                else
+                {
+                    if (WeaponStats.Type == WeaponType.CIWS)
+                    {
+                         // Debug.Log($"[CIWS DEBUG] {gameObject.name} Failed Interception Solution on {currentTarget.name}. Dist: {Vector3.Distance(myPos, currentTarget.position)}");
+                    }
                 }
             }
 

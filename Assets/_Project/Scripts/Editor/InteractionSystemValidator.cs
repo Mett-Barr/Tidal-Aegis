@@ -7,7 +7,7 @@ namespace NavalCommand.Editor
 {
     public class InteractionSystemValidator : EditorWindow
     {
-        [MenuItem("Naval Command/Validate Interaction System")]
+        // [MenuItem("Naval Command/Validate Interaction System")]
         public static void ShowWindow()
         {
             GetWindow<InteractionSystemValidator>("Interaction Validator");

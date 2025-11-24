@@ -13,7 +13,7 @@ namespace NavalCommand.Utils
 {
     public class ContentGenerator : MonoBehaviour
     {
-        [MenuItem("NavalCommand/Rebuild World (Force Update)")]
+        // [MenuItem("NavalCommand/Rebuild World (Force Update)")]
         public static void RebuildAllContent()
         {
             Debug.Log($"Starting World Rebuild... [Pipeline: {UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline?.GetType().Name ?? "Built-in"}]");
@@ -202,6 +202,13 @@ namespace NavalCommand.Utils
             proj.VerticalLaunchHeight = config.VerticalLaunchHeight;
             proj.TurnRate = config.TurnRate;
 
+            // CRITICAL FIX: Add ProjectileBehavior
+            var behavior = go.AddComponent<NavalCommand.Entities.Projectiles.ProjectileBehavior>();
+            behavior.Speed = config.ProjectileSpeed;
+            behavior.Damage = config.Damage;
+            behavior.MovementLogicName = config.MovementLogicName;
+            behavior.ImpactProfile = config.ImpactProfile;
+            
             // Collider (Approximate based on style)
             if (config.ProjectileStyle.Contains("Tracer"))
             {
@@ -425,7 +432,8 @@ namespace NavalCommand.Utils
                     break;
 
                 case "Tracer_Small": // CIWS
-                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.08f, 0.6f, 0.08f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    // DEBUG: Increased size for visibility (was 0.08, 0.6, 0.08)
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.3f, 2.0f, 0.3f), Vector3.zero, new Vector3(90, 0, 0), mat);
                     break;
             }
         }
@@ -770,7 +778,7 @@ namespace NavalCommand.Utils
             Debug.Log($"SpawningSystem configured with {prefabs.Count} enemy types.");
         }
 
-        [MenuItem("NavalCommand/Tools/Generate Empty Hulls")]
+        // [MenuItem("NavalCommand/Tools/Generate Empty Hulls")]
         public static void GenerateEmptyHulls()
         {
             EnsureDirectories();
@@ -828,7 +836,7 @@ namespace NavalCommand.Utils
             PrefabUtility.SaveAsPrefabAsset(shipRoot, path);
             DestroyImmediate(shipRoot);
         }
-        [MenuItem("NavalCommand/Tools/Generate HUD")]
+        // [MenuItem("NavalCommand/Tools/Generate HUD")]
         public static void GenerateHUD()
         {
             // 1. Create Canvas

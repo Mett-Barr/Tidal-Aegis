@@ -72,28 +72,41 @@ namespace NavalCommand.Systems
                 {
                     foreach (var p in EnemyPrefabs)
                     {
-                        if (p.name == SpecificPrefabName)
+                        if (p != null && p.name == SpecificPrefabName)
                         {
                             prefab = p;
                             break;
                         }
                     }
+                    
+                    if (prefab == null) Debug.LogWarning($"[SpawningSystem] Could not find prefab with name '{SpecificPrefabName}' in list of {EnemyPrefabs.Length} items.");
                 }
 
                 // Fallback to index if name not found
                 if (prefab == null)
                 {
                     int index = Mathf.Clamp(SpecificEnemyIndex, 0, EnemyPrefabs.Length - 1);
-                    prefab = EnemyPrefabs[index];
+                    if (EnemyPrefabs.Length > 0)
+                    {
+                        prefab = EnemyPrefabs[index];
+                        Debug.LogWarning($"[SpawningSystem] Fallback to index {index}: {prefab?.name}");
+                    }
+                    else
+                    {
+                        Debug.LogError("[SpawningSystem] EnemyPrefabs list is empty!");
+                        return;
+                    }
                 }
             }
             else
             {
-                prefab = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
+                if (EnemyPrefabs.Length > 0)
+                    prefab = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
             }
 
             if (prefab != null)
             {
+                Debug.Log($"[SpawningSystem] Spawning Enemy: {prefab.name} (Mode: {Mode})");
                 GameObject enemyObj = Instantiate(prefab, spawnPos, Quaternion.LookRotation(-spawnPos.normalized));
                 activeEnemies.Add(enemyObj);
                 

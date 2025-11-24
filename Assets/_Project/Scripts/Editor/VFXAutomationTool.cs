@@ -9,7 +9,7 @@ namespace NavalCommand.Editor
         private const string MATERIAL_PATH = "Assets/_Project/Generated/Materials";
         private const string PREFAB_PATH = "Assets/_Project/Prefabs/VFX";
 
-        [MenuItem("Tools/Naval Command/Rebuild VFX Assets")]
+        // [MenuItem("Tools/Naval Command/Rebuild VFX Assets")]
         public static void RebuildVFXAssets()
         {
             EnsureDirectoryExists(MATERIAL_PATH);

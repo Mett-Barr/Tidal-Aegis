@@ -393,10 +393,21 @@ namespace NavalCommand.Utils
                 // Base sits at Y=0. Height is small (e.g., 0.1 * H_super ~ 0.2m)
                 float baseHeight = 0.2f;
                 
-                // Create Base (The "Hardpoint")
-                GameObject mountBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(mountDiameter, baseHeight, mountDiameter), new Vector3(x, baseHeight / 2f, z));
-                mountBase.name = $"MountPoint_{mountIndex}";
-                mountBase.GetComponent<Renderer>().sharedMaterial.color = deckColor;
+                // Create Base Container (The "Hardpoint") - Scale (1,1,1)
+                GameObject mountBase = new GameObject($"MountPoint_{mountIndex}");
+                mountBase.transform.SetParent(container.transform);
+                mountBase.transform.localPosition = new Vector3(x, baseHeight / 2f, z);
+                mountBase.transform.localRotation = Quaternion.identity;
+                mountBase.transform.localScale = Vector3.one;
+
+                // Create Visual Cylinder as Child
+                GameObject mountVisual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                mountVisual.transform.SetParent(mountBase.transform);
+                mountVisual.transform.localPosition = Vector3.zero;
+                mountVisual.transform.localRotation = Quaternion.identity;
+                mountVisual.transform.localScale = new Vector3(mountDiameter, baseHeight, mountDiameter);
+                mountVisual.GetComponent<Renderer>().sharedMaterial.color = deckColor;
+                DestroyImmediate(mountVisual.GetComponent<Collider>());
 
                 // Rotate Side Mounts
                 if (normPos.x < -0.1f) // Port

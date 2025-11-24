@@ -7,7 +7,7 @@ namespace NavalCommand.Editor
 {
     public class AssetGenerator
     {
-        [MenuItem("Naval Command/Generate Weapon Assets")]
+        // [MenuItem("Naval Command/Generate Weapon Assets")]
         public static void Generate()
         {
             string weaponPath = "Assets/_Project/Data/Weapons";
