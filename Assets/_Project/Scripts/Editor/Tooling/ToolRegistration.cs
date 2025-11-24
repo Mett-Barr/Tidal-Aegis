@@ -19,16 +19,16 @@ namespace NavalCommand.Editor
 
             // --- World Generation (世界生成) ---
             registry.Register("世界生成 (World Gen)", "重建世界 (Rebuild World)", () => {
-                ContentGenerator.RebuildAllContent();
+                HierarchyRestorer.RestoreHierarchy();
             }, "重新生成所有 ScriptableObjects、Prefabs 和配置檔案。 (強制更新)");
 
             registry.Register("世界生成 (World Gen)", "生成空船殼 (Generate Hulls)", () => {
-                ContentGenerator.GenerateEmptyHulls();
+                ContentRebuilder.GenerateEmptyHulls();
             }, "為所有重量等級生成基礎的船殼 Prefab。");
 
             // --- Assets & VFX (資源與特效) ---
             registry.Register("資源與特效 (Assets)", "重建特效資源 (Rebuild VFX)", () => {
-                VFXAutomationTool.RebuildVFXAssets();
+                Generators.VFXAssetGenerator.GenerateAll();
             }, "重新生成 VFX 材質並將其連結到 Prefab。修復粉紅色材質問題。");
 
             // --- Debugging (除錯) ---
@@ -42,7 +42,7 @@ namespace NavalCommand.Editor
             
             // --- UI ---
              registry.Register("介面 (UI)", "生成 HUD (Generate HUD)", () => {
-                ContentGenerator.GenerateHUD();
+                ContentRebuilder.GenerateHUD();
             }, "生成運行時的儀表板 UI。");
         }
     }

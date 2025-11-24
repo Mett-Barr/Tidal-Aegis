@@ -31,24 +31,7 @@ namespace NavalCommand.Systems.Movement
             };
         }
 
-        // -------------------------------------------------------------------------
-        // 2. Linear (Straight Line, No Gravity)
-        // -------------------------------------------------------------------------
-        public static MovementState Linear(MovementState state, MovementContext ctx, float dt)
-        {
-            Vector3 newPosition = state.Position + state.Velocity * dt;
-            
-            return new MovementState
-            {
-                Position = newPosition,
-                Velocity = state.Velocity,
-                Acceleration = Vector3.zero,
-                Rotation = state.Rotation,
-                TimeAlive = state.TimeAlive + dt,
-                PhaseIndex = 0,
-                CustomData = state.CustomData
-            };
-        }
+
 
         // -------------------------------------------------------------------------
         // 3. Guided Missile (Vertical Launch -> Cruise -> Terminal ProNav)
@@ -71,7 +54,7 @@ namespace NavalCommand.Systems.Movement
             float terminalTurnRate = 120f * scaleFactor; // Sharper Terminal Homing
             float currentTurnRate = cruiseTurnRate; // Default to cruise
             
-            float navConstant = 3f; // Unused in Predictive Pursuit
+            // float navConstant = 3f; // Unused in Predictive Pursuit
 
             Vector3 currentPos = state.Position;
             Vector3 currentVel = state.Velocity;

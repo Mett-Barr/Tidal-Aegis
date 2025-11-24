@@ -70,8 +70,8 @@ namespace NavalCommand.Entities.Components
             // 0. Find Target
             FindTarget();
 
-            // 1. Calculate Aim Vector
-            Vector3? desiredAimVector = RotateTowardsTarget();
+            // 1. Calculate Fire Solution (FCS Negotiation)
+            Vector3? desiredAimVector = CalculateFireSolution();
 
             // 2. Aim & Fire Logic
             if (desiredAimVector.HasValue)
@@ -152,85 +152,79 @@ namespace NavalCommand.Entities.Components
             currentTarget = closestTarget;
         }
 
-        private Vector3? RotateTowardsTarget()
+        private Vector3? CalculateFireSolution()
         {
             if (currentTarget == null || WeaponStats == null) return null;
 
             Vector3 myPos = FirePoint.position;
-            Vector3 targetVel = Vector3.zero;
-            Vector3 targetAccel = Vector3.zero;
+            
+            // ---------------------------------------------------------------------
+            // 1. AMMO LAYER: Ask the Ammo for its Ideal Trajectory (The "Wish")
+            // ---------------------------------------------------------------------
+            // Select Predictor (Standard FCS component)
+            ITargetPredictor predictor = GetPredictorForTarget();
 
-            // Get Physics Data
-            float scaledSpeed = WorldPhysicsSystem.Instance.GetScaledSpeed(WeaponStats.ProjectileSpeed);
-            float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
-            
-            // Calculate Ballistic Gravity
-            float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
-            
-            // Apply Multiplier (e.g. 0 for CIWS/Missiles)
-            if (WeaponStats.GravityMultiplier < 0.01f)
+            // Resolve Ammo's Strategy (Higher-Order Function)
+            var aimingLogic = NavalCommand.Systems.Aiming.AimingFunctions.Resolve(WeaponStats.AimingLogicName);
+            Vector3? idealVector = aimingLogic(myPos, WeaponStats, currentTarget, predictor);
+
+            if (!idealVector.HasValue) return null;
+
+            // ---------------------------------------------------------------------
+            // 2. PLATFORM LAYER: Apply Physical Constraints (The "Reality")
+            // ---------------------------------------------------------------------
+            if (WeaponStats.IsVLS)
             {
-                gravityY = 0f;
+                // CONSTRAINT: VLS Platform cannot rotate to aim. It must fire UP.
+                // The "Ideal Vector" is ignored for the *Launch*, but the Ammo (Missile) 
+                // accepts this because it has guidance.
+                
+                // We return UP as the required platform orientation (relative to ship, but usually global UP for VLS)
+                // Actually, VLS cells are fixed relative to the ship. 
+                // If the ship rolls, VLS points sideways. 
+                // For this simplified model, we assume VLS points along the FirePoint's local Y or Z.
+                // But _rotator usually rotates the whole object.
+                
+                // If IsVLS, we simply DO NOT ROTATE. The FirePoint is already fixed.
+                // We return the FirePoint's current forward as the "Solution" to allow firing.
+                return FirePoint.forward * WeaponStats.ProjectileSpeed; 
+            }
+            else if (!WeaponStats.CanRotate)
+            {
+                // CONSTRAINT: Fixed Mount (e.g. Spinal Mount).
+                // We cannot rotate. We can only fire if the target happens to be in front.
+                // Ideally, the Ship Controller would steer the ship.
+                // For the WeaponController, we just check if we are aligned.
+                return idealVector;
             }
             else
             {
-                gravityY *= WeaponStats.GravityMultiplier;
+                // CONSTRAINT: Turret. We can rotate to match the Ideal Vector.
+                return idealVector;
             }
+        }
 
-            // Get Target Physics
+        private ITargetPredictor GetPredictorForTarget()
+        {
+            Vector3 targetVel = Vector3.zero;
+            Vector3 targetAccel = Vector3.zero;
             Rigidbody targetRb = currentTarget.GetComponent<Rigidbody>();
-            if (targetRb != null)
-            {
-                targetVel = targetRb.velocity;
-            }
-            
-            // Select Predictor
-            ITargetPredictor predictor;
-            
-            // 1. Check if Target provides its own prediction strategy (e.g. Missiles)
+            if (targetRb != null) targetVel = targetRb.velocity;
+
             var predictionProvider = currentTarget.GetComponent<IPredictionProvider>();
             if (predictionProvider != null)
             {
                 Vector3 myVel = GetComponentInParent<Rigidbody>()?.velocity ?? Vector3.zero;
-                predictor = predictionProvider.GetPredictor(myPos, myVel);
+                return predictionProvider.GetPredictor(FirePoint.position, myVel);
             }
             else if (targetAccel.sqrMagnitude > 0.1f)
             {
-                // 2. Fallback: Quadratic Prediction for maneuvering targets
-                predictor = new QuadraticTargetPredictor(currentTarget.position, targetVel, targetAccel);
+                return new QuadraticTargetPredictor(currentTarget.position, targetVel, targetAccel);
             }
             else
             {
-                // 3. Fallback: Standard Linear Prediction
-                predictor = new LinearTargetPredictor(currentTarget.position, targetVel);
+                return new LinearTargetPredictor(currentTarget.position, targetVel);
             }
-
-            Vector3 aimVector = Vector3.zero;
-            bool hasSolution = false;
-
-            // SIMPLIFIED LOGIC FOR MISSILES/TORPEDOES
-            if (WeaponStats.Type == WeaponType.Missile || WeaponStats.Type == WeaponType.Torpedo)
-            {
-                aimVector = (currentTarget.position - myPos).normalized * scaledSpeed;
-                hasSolution = true;
-            }
-            else
-            {
-                // For Guns/CIWS, use the Ballistics Computer
-                if (BallisticsComputer.SolveInterception(myPos, scaledSpeed, Mathf.Abs(gravityY), predictor, out Vector3 solution, out float t))
-                {
-                    aimVector = solution;
-                    hasSolution = true;
-                }
-            }
-
-            // Solve!
-            if (hasSolution)
-            {
-                return aimVector;
-            }
-            
-            return null;
         }
 
         public void Fire(IDamageable target)

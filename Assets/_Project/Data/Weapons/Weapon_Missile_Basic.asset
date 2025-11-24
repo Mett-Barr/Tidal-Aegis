@@ -39,9 +39,12 @@ MonoBehaviour:
   _baseSpread: 0
   _overrideSpread: 0
   _useOverrideSpread: 0
-  _baseFiringAngleTolerance: 5
+  _baseFiringAngleTolerance: 180
   _overrideFiringAngleTolerance: 0
   _useOverrideFiringAngleTolerance: 0
+  _baseCanRotate: 0
+  _baseIsVLS: 1
+  _baseAimingLogicName: Direct
   ProjectilePrefab: {fileID: 5685165055899438739, guid: e0946eafee698da49add6955c5d9fd5f,
     type: 3}
   TargetMask:

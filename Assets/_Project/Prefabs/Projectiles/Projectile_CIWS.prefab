@@ -61,7 +61,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8d390851d9a32d04aa2bdee20b30b713, type: 2}
+  - {fileID: 2100000, guid: 2c42f52c23595446785bc1e2bb68e9fb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -93,9 +93,8 @@ GameObject:
   m_Component:
   - component: {fileID: 245083419341488564}
   - component: {fileID: 476063928700759980}
-  - component: {fileID: 5112994646314620225}
-  - component: {fileID: 6684805842513059780}
   - component: {fileID: 7882978787908244225}
+  - component: {fileID: 5112994646314620225}
   m_Layer: 0
   m_Name: Projectile_CIWS
   m_TagString: Untagged
@@ -146,58 +145,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 3
---- !u!114 &5112994646314620225
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5382165903713336999}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5dd942efeba7e2a43b56781ee574c910, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ProjectileTeam: 0
-  SourceWeaponType: 0
-  MovementLogicName: Linear
-  Speed: 1100
-  Damage: 2
-  CruiseHeight: 0
-  TerminalHomingDistance: 0
-  VerticalLaunchHeight: 0
-  TurnRate: 0
-  Target: {fileID: 0}
-  Owner: {fileID: 0}
-  ImpactProfile:
-    Category: 0
-    Size: 0
---- !u!114 &6684805842513059780
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5382165903713336999}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5dd942efeba7e2a43b56781ee574c910, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  ProjectileTeam: 0
-  SourceWeaponType: 0
-  MovementLogicName: Linear
-  Speed: 1100
-  Damage: 2
-  CruiseHeight: 40
-  TerminalHomingDistance: 50
-  VerticalLaunchHeight: 15
-  TurnRate: 2
-  Target: {fileID: 0}
-  Owner: {fileID: 0}
-  ImpactProfile:
-    Category: 1
-    Size: 0
 --- !u!136 &7882978787908244225
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -217,10 +164,36 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.1
-  m_Height: 1
+  m_Radius: 0.5
+  m_Height: 2
   m_Direction: 2
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5112994646314620225
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5382165903713336999}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dd942efeba7e2a43b56781ee574c910, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ProjectileTeam: 0
+  SourceWeaponType: 0
+  MovementLogicName: Ballistic
+  Speed: 1100
+  Damage: 2
+  CruiseHeight: 0
+  TerminalHomingDistance: 0
+  VerticalLaunchHeight: 0
+  TurnRate: 0
+  Target: {fileID: 0}
+  Owner: {fileID: 0}
+  ImpactProfile:
+    Category: 1
+    Size: 0
 --- !u!1 &7790740907304926123
 GameObject:
   m_ObjectHideFlags: 0

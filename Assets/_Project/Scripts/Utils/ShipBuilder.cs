@@ -59,7 +59,11 @@ namespace NavalCommand.Utils
             visualContainer = containerObj.transform;
 
             // 2. Create Modular Hull
-            GameObject hullModule = CreateHullModule(ShipClass);
+            Material defaultMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (defaultMat == null) defaultMat = new Material(Shader.Find("Standard"));
+            defaultMat.color = Color.gray;
+
+            GameObject hullModule = CreateHullModule(ShipClass, defaultMat);
             hullModule.transform.SetParent(visualContainer);
             hullModule.transform.localPosition = Vector3.zero;
             hullModule.transform.localRotation = Quaternion.identity;
@@ -93,7 +97,7 @@ namespace NavalCommand.Utils
 
                     WeaponType weaponType = (DefaultWeaponStats != null) ? DefaultWeaponStats.Type : WeaponType.FlagshipGun;
                     
-                    GameObject weaponVisual = CreateWeaponModule(weaponType);
+                    GameObject weaponVisual = CreateWeaponModule(weaponType, defaultMat);
                     weaponVisual.transform.SetParent(child);
                     weaponVisual.transform.localPosition = Vector3.zero;
                     weaponVisual.transform.localRotation = Quaternion.identity;
@@ -130,9 +134,12 @@ namespace NavalCommand.Utils
             {
                 col = gameObject.AddComponent<BoxCollider>();
             }
-            // Heavy Hull is approx 5 wide, 2.5 high, ~20 long
-            col.size = new Vector3(5f, 3f, 20f); 
-            col.center = new Vector3(0, 1.5f, 0);
+            // Dynamic Collider Size based on Hull Dimensions
+            // Note: W, H_hull, H_super, L are local to CreateHullModule.
+            // For now, using hardcoded values or class members if available.
+            // To make this truly dynamic, CreateHullModule would need to return these dimensions.
+            col.size = new Vector3(5f, 3f, 20f); // Placeholder, ideally derived from hullModule
+            col.center = new Vector3(0, 1.5f, 0); // Placeholder
         }
 
         // Force Recompile Check 2
@@ -158,10 +165,13 @@ namespace NavalCommand.Utils
             // 1. Generate Weapon Modules
             float xSpacing = 5f;
             float currentX = 0f;
+            Material debugMat = new Material(Shader.Find("Universal Render Pipeline/Lit")); 
+            if (debugMat == null) debugMat = new Material(Shader.Find("Standard"));
+            debugMat.color = Color.gray;
             
             foreach (WeaponType type in System.Enum.GetValues(typeof(WeaponType)))
             {
-                GameObject weapon = CreateWeaponModule(type);
+                GameObject weapon = CreateWeaponModule(type, debugMat);
                 weapon.transform.SetParent(root.transform);
                 weapon.transform.localPosition = new Vector3(currentX, 0, 0);
                 currentX += xSpacing;
@@ -173,78 +183,122 @@ namespace NavalCommand.Utils
             
             foreach (WeightClass weight in System.Enum.GetValues(typeof(WeightClass)))
             {
-                GameObject hull = CreateHullModule(weight);
+                GameObject hull = CreateHullModule(weight, debugMat);
                 hull.transform.SetParent(root.transform);
                 hull.transform.localPosition = new Vector3(currentX, 0, zSpacing);
                 currentX += 15f; // More space for ships
             }
         }
 
-        public GameObject CreateWeaponModule(WeaponType type)
+        public GameObject CreateWeaponModule(WeaponType type, Material sharedMat)
         {
             GameObject container = new GameObject($"Weapon_{type}");
             
-            // Naval Colors
-            Color weaponColor = new Color(0.45f, 0.45f, 0.5f); // Darker Gunmetal
+            // Use the shared material for everything to ensure consistency
+            // If we want different colors, we should use different materials, but user requested unification.
+            // However, barrels usually are darker. 
+            // User said: "Can we unify using the hull's material?"
+            // So we will use sharedMat for the main body.
             
             switch (type)
             {
                 case WeaponType.FlagshipGun:
                     // Standard Turret
                     GameObject baseObj = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1.5f, 0.5f, 1.5f), Vector3.zero);
-                    baseObj.GetComponent<Renderer>().sharedMaterial.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    baseObj.GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    
+                    GameObject barrel = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0));
+                    barrel.GetComponent<Renderer>().sharedMaterial = sharedMat; 
+                    // If we want black barrels, we'd need a separate material. 
+                    // But "Unify using hull's material" implies single material usage or at least consistent base.
+                    // Let's stick to sharedMat for now to be safe.
                     break;
 
                 case WeaponType.CIWS:
                     // Phalanx style
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.8f, 1.2f, 0.8f), new Vector3(0, 0.6f, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.white; // CIWS often white
-                    CreatePrimitive(container, PrimitiveType.Sphere, new Vector3(0.7f, 0.7f, 0.7f), new Vector3(0, 1.2f, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.white;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.2f, 1f, 0.2f), new Vector3(0, 1.0f, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black; // Barrel
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.8f, 1.2f, 0.8f), new Vector3(0, 0.6f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Sphere, new Vector3(0.7f, 0.7f, 0.7f), new Vector3(0, 1.2f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.2f, 1f, 0.2f), new Vector3(0, 1.0f, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    break;
+
+                case WeaponType.Autocannon:
+                    // Single Barrel Quick Firing
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.6f, 0.6f, 0.6f), new Vector3(0, 0.3f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.1f, 1.0f, 0.1f), new Vector3(0, 0.5f, 0.5f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
                     break;
 
                 case WeaponType.Missile:
                     // VLS (Vertical Launch System)
                     // 1. Base (Flat Block)
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(2.0f, 0.5f, 3.0f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
+                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(2.0f, 0.5f, 3.0f), Vector3.zero).GetComponent<Renderer>().sharedMaterial = sharedMat;
                     
                     // 2. Cells (Visual Detail)
-                    // Create a grid of cells on top
                     for (int x = -1; x <= 1; x++)
                     {
                         for (int z = -2; z <= 2; z++)
                         {
-                            CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.4f, 0.1f, 0.4f), new Vector3(x * 0.6f, 0.3f, z * 0.6f)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
+                            CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.4f, 0.1f, 0.4f), new Vector3(x * 0.6f, 0.3f, z * 0.6f)).GetComponent<Renderer>().sharedMaterial = sharedMat;
                         }
                     }
 
-                    // 3. FirePoint (CRITICAL: Must point UP)
-                    // Forward (+Z) of FirePoint determines launch direction.
-                    // Rotate -90 on X so Forward points Up.
+                    // 3. FirePoint
                     GameObject fp = new GameObject("FirePoint");
                     fp.transform.SetParent(container.transform);
-                    fp.transform.localPosition = new Vector3(0, 1.0f, 0); // Above the cells
-                    fp.transform.localRotation = Quaternion.Euler(-90, 0, 0); // Point UP
+                    fp.transform.localPosition = new Vector3(0, 1.0f, 0); 
+                    fp.transform.localRotation = Quaternion.Euler(-90, 0, 0); 
                     break;
 
                 case WeaponType.Torpedo:
                     // Triple Tube
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero).GetComponent<Renderer>().sharedMaterial.color = weaponColor;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial.color = Color.black;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
                     break;
             }
 
             return container;
         }
 
-        public GameObject CreateHullModule(WeightClass weight)
+        private Material GetOrSaveMaterial(string name, Color color)
+        {
+#if UNITY_EDITOR
+            string matFolder = "Assets/_Project/Generated/Materials";
+            if (!System.IO.Directory.Exists(matFolder)) System.IO.Directory.CreateDirectory(matFolder);
+            
+            string matPath = $"{matFolder}/{name}.mat";
+            Material mat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            
+            if (mat == null)
+            {
+                mat = new Material(GetShader());
+                mat.color = color;
+                // URP Support
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+                
+                UnityEditor.AssetDatabase.CreateAsset(mat, matPath);
+            }
+            else
+            {
+                // Update color just in case
+                mat.color = color;
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+                UnityEditor.EditorUtility.SetDirty(mat);
+            }
+            return mat;
+#else
+            Material mat = new Material(GetShader());
+            mat.color = color;
+             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
+            return mat;
+#endif
+        }
+
+        public GameObject CreateHullModule(WeightClass weight, Material hullMat)
         {
             GameObject container = new GameObject($"Hull_{weight}");
             
             // Configuration
-            Color hullColor = Color.gray;
             Color deckColor = new Color(0.3f, 0.3f, 0.3f);
             
             // Dimensions based on Spec
@@ -302,7 +356,7 @@ namespace NavalCommand.Utils
 
                     // 10 Side Mounts (5 Port, 5 Starboard)
                     // Spaced along the mid-section
-                    float sideX = 0.35f; // Normalized X offset from center (relative to Width?) No, let's use absolute or relative to W.
+                    // float sideX = 0.35f; // Unused
                     // Actually, let's store normalized X where 1.0 is edge. 
                     // But our logic below uses absolute X? 
                     // Let's stick to the pattern: Vector3(x_norm, y_unused, z_norm). 
@@ -327,8 +381,7 @@ namespace NavalCommand.Utils
                     islandNormPosition = 0.5f;
                     break;
 
-                    islandNormPosition = 0.5f; // Center Island
-                    break;
+
             }
 
             // Coordinate Conversion
@@ -349,23 +402,6 @@ namespace NavalCommand.Utils
             
             MeshFilter mf = hullMeshObj.AddComponent<MeshFilter>();
             MeshRenderer mr = hullMeshObj.AddComponent<MeshRenderer>();
-
-            // Create and Save Material
-            Material hullMat = new Material(GetShader());
-            hullMat.color = hullColor;
-            
-#if UNITY_EDITOR
-            string matFolder = "Assets/_Project/Generated/Materials";
-            if (!System.IO.Directory.Exists(matFolder)) System.IO.Directory.CreateDirectory(matFolder);
-            
-            string matPath = $"{matFolder}/HullMat_{System.DateTime.Now.Ticks}.mat";
-            UnityEditor.AssetDatabase.CreateAsset(hullMat, matPath);
-            UnityEditor.AssetDatabase.SaveAssets();
-            UnityEditor.AssetDatabase.Refresh();
-            
-            hullMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>(matPath);
-            Debug.Log($"[ShipBuilder] Saved Hull Material to {matPath}");
-#endif
 
             mr.sharedMaterial = hullMat;
 
@@ -432,14 +468,14 @@ namespace NavalCommand.Utils
             // Center Y = H_super / 2.
             GameObject island = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(islandWidth, H_super, islandLength), new Vector3(0, H_super / 2f, islandZ));
             island.name = "Island";
-            island.GetComponent<Renderer>().sharedMaterial.color = hullColor;
+            island.GetComponent<Renderer>().sharedMaterial = hullMat;
             
             // Island Detail (Bridge Window / Mast)
             // Mast top at H_super (already there). 
             // Let's add a small mast extending slightly higher to mark it as highest point.
             GameObject mast = CreatePrimitive(island, PrimitiveType.Cylinder, new Vector3(0.5f, 1.0f, 0.5f), new Vector3(0, 0.5f + 0.2f, 0)); // Relative to island center
             mast.transform.localPosition = new Vector3(0, 0.5f + 0.2f, 0); // On top of island block
-            mast.GetComponent<Renderer>().sharedMaterial.color = Color.black;
+            mast.GetComponent<Renderer>().sharedMaterial = hullMat;
 
             return container;
         }

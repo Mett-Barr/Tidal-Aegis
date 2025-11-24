@@ -106,6 +106,21 @@ namespace NavalCommand.Data
         public float FiringAngleTolerance => _useOverrideFiringAngleTolerance ? _overrideFiringAngleTolerance : _baseFiringAngleTolerance;
         public void SetBaseFiringAngleTolerance(float val) => _baseFiringAngleTolerance = val;
 
+        // ---------------------------------------------------------------------
+        // Platform Capabilities
+        // ---------------------------------------------------------------------
+        [SerializeField] private bool _baseCanRotate = true;
+        public bool CanRotate => _baseCanRotate;
+        public void SetBaseCanRotate(bool val) => _baseCanRotate = val;
+
+        [SerializeField] private bool _baseIsVLS = false;
+        public bool IsVLS => _baseIsVLS;
+        public void SetBaseIsVLS(bool val) => _baseIsVLS = val;
+
+        [SerializeField] private string _baseAimingLogicName = "Ballistic";
+        public string AimingLogicName => _baseAimingLogicName;
+        public void SetBaseAimingLogicName(string val) => _baseAimingLogicName = val;
+
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;
         public LayerMask TargetMask;

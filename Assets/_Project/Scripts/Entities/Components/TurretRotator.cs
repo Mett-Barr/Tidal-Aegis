@@ -13,7 +13,7 @@ namespace NavalCommand.Entities.Components
         [SerializeField] private Transform _firePoint;
 
         [Header("Debug")]
-        [SerializeField] private bool _drawDebugGizmos = true;
+        // [SerializeField] private bool _drawDebugGizmos = true;
         private Vector3? _lastTargetPos;
 
         [Header("Platform Capabilities")]

@@ -21,6 +21,7 @@ namespace NavalCommand.Data
             ProjectileColor = Color.yellow,
             ProjectileStyle = "Shell",
             MovementLogicName = "Ballistic",
+            AimingLogicName = "Ballistic",
             ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Large)
         };
 
@@ -41,7 +42,14 @@ namespace NavalCommand.Data
             TerminalHomingDistance = 50f,
             VerticalLaunchHeight = 20f,
             TurnRate = 15f,
-            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Massive)
+            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Massive),
+            
+            // Platform Settings
+            GravityMultiplier = 0f,
+            CanRotate = false,
+            IsVLS = true,
+            FiringAngleTolerance = 180f, // VLS doesn't need to aim
+            AimingLogicName = "Direct"
         };
 
         public static readonly WeaponConfig Torpedo = new WeaponConfig("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, TargetCapability.Ship)
@@ -61,7 +69,13 @@ namespace NavalCommand.Data
             TerminalHomingDistance = 30f,
             VerticalLaunchHeight = 0f,
             TurnRate = 1f,
-            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Massive)
+            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Massive),
+            
+            // Platform Settings
+            GravityMultiplier = 0f,
+            CanRotate = true,
+            IsVLS = false,
+            AimingLogicName = "Direct"
         };
 
         public static readonly WeaponConfig Autocannon = new WeaponConfig("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, TargetCapability.Ship | TargetCapability.Aircraft)
@@ -76,7 +90,8 @@ namespace NavalCommand.Data
             ProjectileName = "Projectile_Autocannon",
             ProjectileColor = new Color(1f, 0.5f, 0f),
             ProjectileStyle = "Tracer",
-            MovementLogicName = "Linear",
+            MovementLogicName = "Ballistic",
+            AimingLogicName = "Ballistic",
             ImpactProfile = new ImpactProfile(ImpactCategory.Kinetic, ImpactSize.Small)
         };
 
@@ -92,8 +107,13 @@ namespace NavalCommand.Data
             ProjectileName = "Projectile_CIWS",
             ProjectileColor = Color.white,
             ProjectileStyle = "Tracer_Small",
-            MovementLogicName = "Linear",
-            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Small)
+            MovementLogicName = "Ballistic",
+            ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Small),
+            
+            // Platform Settings
+            GravityMultiplier = 1f, // Explicitly set
+            FiringAngleTolerance = 2f, // Precise
+            AimingLogicName = "Ballistic"
         };
 
         static WeaponRegistry()

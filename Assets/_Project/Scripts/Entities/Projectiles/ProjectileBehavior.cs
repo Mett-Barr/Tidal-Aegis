@@ -176,10 +176,14 @@ namespace NavalCommand.Entities.Projectiles
                 case "Ballistic": return MovementFunctions.Ballistic;
                 case "GuidedMissile": return MovementFunctions.GuidedMissile;
                 case "Torpedo": return MovementFunctions.Torpedo;
-                case "Linear": return MovementFunctions.Linear;
+                case "Linear": 
+                    // ARCHITECTURAL FIX: "Linear" is just Ballistic with 0 Gravity.
+                    // We map it to Ballistic so it respects the GravityMultiplier passed from WeaponStats.
+                    // This ensures SSOT: GravityMultiplier controls the trajectory, not the Logic Name.
+                    return MovementFunctions.Ballistic;
                 default:
-                    Debug.LogWarning($"[ProjectileBehavior] Unknown logic '{name}', defaulting to Linear.");
-                    return MovementFunctions.Linear;
+                    Debug.LogWarning($"[ProjectileBehavior] Unknown logic '{name}', defaulting to Ballistic.");
+                    return MovementFunctions.Ballistic;
             }
         }
 

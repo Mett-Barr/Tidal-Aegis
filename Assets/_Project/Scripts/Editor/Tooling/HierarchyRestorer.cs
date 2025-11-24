@@ -16,8 +16,8 @@ namespace NavalCommand.Editor.Tooling
         {
             Debug.Log("Starting Hierarchy Restoration...");
 
-            // Ensure Data Integrity
-            NavalCommand.Utils.ContentGenerator.RebuildAllContent(); // Regenerate all assets to fix 0-values
+            // Rebuild content to ensure everything is fresh
+            ContentRebuilder.RebuildAllContent(); // Regenerate all assets to fix 0-values
             FixProjectilePrefabs(); // Fix duplicate components on prefabs
 
             RestorePoolManager(); // Infrastructure first
