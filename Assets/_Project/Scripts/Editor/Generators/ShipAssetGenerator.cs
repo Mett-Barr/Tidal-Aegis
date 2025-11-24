@@ -138,6 +138,7 @@ namespace NavalCommand.Editor.Generators
             WeaponStatsSO mainGun = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_FlagshipGun_Basic.asset");
             WeaponStatsSO ciws = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_CIWS_Basic.asset");
             WeaponStatsSO auto = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_Autocannon_Basic.asset");
+            WeaponStatsSO missile = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_Missile_Basic.asset");
 
             // Attach Weapons to all MountPoints
             // SuperHeavy has ~17 mounts.
@@ -162,7 +163,17 @@ namespace NavalCommand.Editor.Generators
                     }
                     else // Side Mounts (4-13)
                     {
-                        if (auto != null) AttachWeapon(builder, shipRoot, child, WeaponType.Autocannon, auto, hullMat);
+                        // ARCHITECTURAL CHANGE: Mixed Loadout for "All-Rounder" Flagship
+                        // 4-8: Autocannons (Close Defense / Surface)
+                        // 9-13: Missiles (Long Range Strike)
+                        if (index <= 8)
+                        {
+                             if (auto != null) AttachWeapon(builder, shipRoot, child, WeaponType.Autocannon, auto, hullMat);
+                        }
+                        else
+                        {
+                             if (missile != null) AttachWeapon(builder, shipRoot, child, WeaponType.Missile, missile, hullMat);
+                        }
                     }
                 }
             }

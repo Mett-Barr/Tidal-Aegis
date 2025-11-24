@@ -323,7 +323,9 @@ namespace NavalCommand.Entities.Projectiles
                 return;
             }
 
-            IDamageable damageable = hit.collider.GetComponent<IDamageable>();
+            // ARCHITECTURAL FIX: Use GetComponentInParent because Colliders are now on children (Hull/Turrets)
+            // while the UnitController (IDamageable) is on the Root.
+            IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
             if (damageable != null)
             {
                 if (damageable.GetTeam() != ProjectileTeam)
