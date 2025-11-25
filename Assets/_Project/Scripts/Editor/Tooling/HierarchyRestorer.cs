@@ -14,7 +14,7 @@ namespace NavalCommand.Editor.Tooling
     {
         public static void RestoreHierarchy()
         {
-            Debug.Log("Starting Hierarchy Restoration...");
+            Debug.Log("[HierarchyRestorer] Starting Hierarchy Restoration...");
 
             // Rebuild content to ensure everything is fresh
             ContentRebuilder.RebuildAllContent(); // Regenerate all assets to fix 0-values
@@ -30,7 +30,7 @@ namespace NavalCommand.Editor.Tooling
             RestoreLighting();
             RestoreCamera();
 
-            Debug.Log("Hierarchy Restoration Complete!");
+            Debug.Log("[HierarchyRestorer] Hierarchy Restoration Complete!");
         }
 
         private static void RestoreGameManager()

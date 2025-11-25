@@ -26,10 +26,22 @@ namespace NavalCommand.Editor
                 ContentRebuilder.GenerateEmptyHulls();
             }, "為所有重量等級生成基礎的船殼 Prefab。");
 
-            // --- Assets & VFX (資源與特效) ---
-            registry.Register("資源與特效 (Assets)", "僅重建 VFX (VFX Only)", () => {
+            // --- VFX Tools (VFX 工具) ---
+            registry.Register("VFX 工具 (VFX Tools)", "清理 VFX Prefabs (Clean VFX)", () => {
+                VFXCleaner.CleanVFXPrefabs();
+            }, "刪除舊的 VFX Prefabs，為重新生成做準備。");
+            
+            registry.Register("VFX 工具 (VFX Tools)", "診斷 VFX Prefabs (Diagnose VFX)", () => {
+                VFXPrefabDiagnostics.DiagnoseVFXPrefabs();
+            }, "檢查 VFX Prefab 的結構、材質和 Shader 狀態。");
+            
+            registry.Register("VFX 工具 (VFX Tools)", "修復 VFX 材質 (Fix VFX Materials)", () => {
+                VFXPrefabFixer.FixVFXPrefabMaterials();
+            }, "嘗試手動修復 VFX Prefab 的材質引用（如果診斷顯示 NULL）。");
+            
+            registry.Register("VFX 工具 (VFX Tools)", "僅重建 Impact VFX (Impact VFX Only)", () => {
                 Generators.VFXAssetGenerator.GenerateAll();
-            }, "僅重新生成 VFX 材質（不重建整個世界）。用於快速迭代特效效果。注意：「重建世界」已包含此步驟。");
+            }, "僅重新生成 Impact VFX 材質（爆炸、水花等）。不重建 Trail VFX。");
 
             // --- Debugging (除錯) ---
             registry.Register("除錯工具 (Debug)", "檢查 Shader (Check Shaders)", () => {
@@ -43,6 +55,10 @@ namespace NavalCommand.Editor
             registry.Register("除錯工具 (Debug)", "診斷彈道模型 (Diagnose Projectiles)", () => {
                 ProjectileDiagnostics.CheckAllProjectiles();
             }, "檢查所有彈道 Prefab 的模型、材質和渲染器狀態，輸出詳細診斷報告。");
+            
+            registry.Register("除錯工具 (Debug)", "對比 VFX vs Projectile (Compare VFX)", () => {
+                VFXDeepDiagnostics.DeepComparison();
+            }, "深度對比 VFX Prefab 和 Projectile Prefab 的結構差異。");
 
             registry.Register("除錯工具 (Debug)", "刷新彈道 Prefabs (Refresh Prefabs)", () => {
                 AssetRefresher.RefreshProjectilePrefabs();

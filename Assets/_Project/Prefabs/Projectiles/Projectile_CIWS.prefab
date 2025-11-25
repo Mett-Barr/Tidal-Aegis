@@ -117,7 +117,6 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4548359669982524476}
-  - {fileID: 1783530832837815473}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &476063928700759980
@@ -208,9 +207,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1d74759a33074bf8a07106ee94e22c4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  FlameParticles: []
-  SmokeParticles: []
-  AutoDestructDelay: 5
+  VFXType: 0
 --- !u!1 &7790740907304926123
 GameObject:
   m_ObjectHideFlags: 0
@@ -241,36 +238,5 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3560008736667895697}
-  m_Father: {fileID: 245083419341488564}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &8971370556614828419
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1783530832837815473}
-  m_Layer: 0
-  m_Name: VFX_Root
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1783530832837815473
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8971370556614828419}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
   m_Father: {fileID: 245083419341488564}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

@@ -9,12 +9,26 @@
   Renderer 0 (Cylinder):
     Enabled: True
     Materials Count: 1
-    [ERROR] Material is NULL
+    Material: Mat_Projectile_FlagshipGun
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.922, 0.016, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.922, 0.016, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
 
   Renderer 1 (Sphere):
     Enabled: True
     Materials Count: 1
-    [ERROR] Material is NULL
+    Material: Mat_Projectile_FlagshipGun
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.922, 0.016, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.922, 0.016, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
 
   Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_FlagshipGun.mat):
     Shader: Universal Render Pipeline/Lit
@@ -145,7 +159,14 @@
   Renderer 0 (Capsule):
     Enabled: True
     Materials Count: 1
-    [ERROR] Material is NULL
+    Material: Mat_Projectile_Autocannon
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.500, 0.000, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.500, 0.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: RealtimeEmissive
 
   Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_Autocannon.mat):
     Shader: Universal Render Pipeline/Lit
@@ -160,10 +181,17 @@
   Renderer 0 (Capsule):
     Enabled: True
     Materials Count: 1
-    [ERROR] Material is NULL
+    Material: Mat_Projectile_CIWS
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(0.850, 0.650, 0.350, 1.000) (Alpha: 1)
+      _Color: RGBA(0.850, 0.650, 0.350, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: RealtimeEmissive
 
   Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_CIWS.mat):
     Shader: Universal Render Pipeline/Lit
-    _BaseColor: RGBA(1.000, 1.000, 1.000, 1.000)
+    _BaseColor: RGBA(0.850, 0.650, 0.350, 1.000)
 
 === END DIAGNOSTICS ===

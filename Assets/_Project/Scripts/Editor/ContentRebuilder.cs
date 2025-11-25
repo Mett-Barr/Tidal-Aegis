@@ -8,7 +8,15 @@ namespace NavalCommand.Editor
     {
         public static void RebuildAllContent()
         {
-            Debug.Log("[ContentRebuilder] Starting Full Rebuild...");
+            Debug.Log("[ContentRebuilder] Starting content rebuild...");
+
+            // 0a. Clean old VFX Prefabs (CRITICAL: Ensures clean regeneration)
+            Debug.Log("[ContentRebuilder] Cleaning old VFX Prefabs...");
+            NavalCommand.Utils.VFXCleaner.CleanVFXPrefabs();
+
+            // 0b. VFX Prefabs (Must be generated before weapons reference them)
+            Debug.Log("[ContentRebuilder] Generating VFX Prefabs...");
+            VFXPrefabGenerator.GenerateAll();
 
             // 1. Weapons (Dependencies for Ships)
             Debug.Log("[ContentRebuilder] Generating Weapons...");
@@ -18,18 +26,25 @@ namespace NavalCommand.Editor
             Debug.Log("[ContentRebuilder] Generating Ships...");
             ShipAssetGenerator.GenerateAll();
 
-            // 3. VFX (Independent)
-            Debug.Log("[ContentRebuilder] Generating VFX...");
+            // 3. VFX Assets (Impact effects)
+            Debug.Log("[ContentRebuilder] Generating VFX Assets...");
             VFXAssetGenerator.GenerateAll();
 
             // 4. Refresh Projectile Prefabs (Fix AssetDatabase cache)
             Debug.Log("[ContentRebuilder] Refreshing Projectile Prefabs...");
             NavalCommand.Utils.AssetRefresher.RefreshProjectilePrefabs();
 
+            // 5. Configure VFXManager (Auto-assign Trail VFX Prefabs)
+            Debug.Log("[ContentRebuilder] Configuring VFXManager...");
+            VFXManagerConfigurator.ConfigureVFXManager();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
             // 5. UI/HUD (Optional)
             // HUDGenerator.Generate(); 
 
-            Debug.Log("[ContentRebuilder] Rebuild Complete!");
+            Debug.Log("[ContentRebuilder] ✅ Full Rebuild Complete!");
         }
 
         public static void GenerateEmptyHulls()

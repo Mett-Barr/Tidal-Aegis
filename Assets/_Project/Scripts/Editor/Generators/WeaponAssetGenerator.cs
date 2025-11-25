@@ -65,9 +65,7 @@ namespace NavalCommand.Editor.Generators
             string projPath = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
             so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
             
-            // Muzzle Flash
-            string flashPath = $"Assets/_Project/Prefabs/Projectiles/MuzzleFlash_{config.ProjectileName}.prefab";
-            so.MuzzleFlashPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(flashPath);
+            // MuzzleFlash now handled by VFXManager, no longer per-weapon
 
             so.TargetMask = ~0; // Default to Everything
             
@@ -79,58 +77,8 @@ namespace NavalCommand.Editor.Generators
             // 1. Generate Projectile Prefab
             CreateProjectilePrefab(config);
 
-            // 2. Generate Muzzle Flash Prefab
-            CreateMuzzleFlashPrefab(config);
-
-            // 3. Generate WeaponStats SO
+            // 2. Generate WeaponStats SO (MuzzleFlash now handled by VFXManager)
             CreateWeaponStats(config);
-        }
-
-        private static void CreateMuzzleFlashPrefab(WeaponConfig config)
-        {
-            string path = $"Assets/_Project/Prefabs/Projectiles/MuzzleFlash_{config.ProjectileName}.prefab";
-            
-            GameObject root = new GameObject($"MuzzleFlash_{config.ProjectileName}");
-            
-            // Add Particle System for Flash
-            var ps = root.AddComponent<ParticleSystem>();
-            var main = ps.main;
-            main.duration = 0.1f;
-            main.startLifetime = 0.1f;
-            main.startSpeed = 5f;
-            main.startSize = 1.5f;
-            main.startColor = config.ProjectileColor;
-            main.loop = false;
-            main.playOnAwake = true;
-            main.stopAction = ParticleSystemStopAction.Destroy; // Auto destroy
-
-            var emission = ps.emission;
-            emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, 1) });
-            emission.rateOverTime = 0f;
-
-            var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 15f;
-            shape.radius = 0.1f;
-
-            var renderer = root.GetComponent<ParticleSystemRenderer>();
-            renderer.material = new Material(Shader.Find("Sprites/Default"));
-
-            // Add Light
-            var lightObj = new GameObject("Light");
-            lightObj.transform.SetParent(root.transform);
-            var light = lightObj.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = config.ProjectileColor;
-            light.range = 10f;
-            light.intensity = 5f;
-            
-            // Auto-destroy light script? No, the root destroys itself via ParticleSystem stopAction.
-            // But we need to make sure the light fades? 
-            // For simplicity, just let it blink out when object is destroyed.
-
-            PrefabUtility.SaveAsPrefabAsset(root, path);
-            GameObject.DestroyImmediate(root);
         }
 
         private static void CreateProjectilePrefab(WeaponConfig config)
@@ -166,16 +114,31 @@ namespace NavalCommand.Editor.Generators
 
             // VFX Controller
             var vfxCtrl = root.AddComponent<ProjectileVFXController>();
+            
+            // Assign VFX Type based on projectile style (unified pooling system)
+            vfxCtrl.VFXType = GetVFXTypeForStyle(config.ProjectileStyle);
 
-            // Visuals & Particles
-            CreateProjectileVisuals(root, vfxCtrl, config.ProjectileStyle, config.ProjectileColor);
+            // Visuals (Model only, no particles)
+            CreateProjectileVisuals(root, config.ProjectileStyle, config.ProjectileColor);
 
             // Save
             PrefabUtility.SaveAsPrefabAsset(root, path);
             GameObject.DestroyImmediate(root);
         }
+        
+        private static NavalCommand.VFX.VFXType GetVFXTypeForStyle(string style)
+        {
+            return style switch
+            {
+                "Missile" => NavalCommand.VFX.VFXType.MissileTrail,
+                "Torpedo" => NavalCommand.VFX.VFXType.TorpedoBubbles,
+                "Tracer" => NavalCommand.VFX.VFXType.None,        // No VFX for Autocannon (visual feedback from tracer model)
+                "Tracer_Small" => NavalCommand.VFX.VFXType.None,  // No VFX for CIWS (high fire rate)
+                _ => NavalCommand.VFX.VFXType.None // Shell have no VFX
+            };
+        }
 
-        private static void CreateProjectileVisuals(GameObject parent, ProjectileVFXController vfxCtrl, string style, Color color)
+        private static void CreateProjectileVisuals(GameObject parent, string style, Color color)
         {
             // Material Generation
             Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
@@ -220,11 +183,7 @@ namespace NavalCommand.Editor.Generators
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.identity;
 
-            // Create VFX Root (Holder for Particles)
-            GameObject vfxRoot = new GameObject("VFX_Root");
-            vfxRoot.transform.SetParent(parent.transform);
-            vfxRoot.transform.localPosition = Vector3.zero;
-            vfxRoot.transform.localRotation = Quaternion.LookRotation(Vector3.back); // Point backwards for exhaust
+            // VFX is now spawned independently via VFXPrefab, no inline particles needed
 
             switch (style)
             {
@@ -239,24 +198,20 @@ namespace NavalCommand.Editor.Generators
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(1.2f, 0.05f, 0.4f), new Vector3(0, 0, -1.2f), Vector3.zero, mat);
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.05f, 1.2f, 0.4f), new Vector3(0, 0, -1.2f), Vector3.zero, mat);
                     
-                    // VFX: Flame + Smoke
-                    CreateParticleSystem(vfxRoot, vfxCtrl.FlameParticles, "Flame", color, 0.1f, 0.5f, 10f);
-                    CreateParticleSystem(vfxRoot, vfxCtrl.SmokeParticles, "Smoke", Color.white, 2.0f, 1.0f, 2f);
+                    // NEW: Add Flame particle system as child (Unity best practice)
+                    CreateFlameParticleSystem(parent, color);
+                    // VFX handled by VFX_MissileTrail.prefab
                     break;
                 case "Torpedo":
                     CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.4f, 2f, 0.4f), Vector3.zero, new Vector3(90, 0, 0), mat);
                     CreatePrimitive(model, PrimitiveType.Sphere, new Vector3(0.4f, 0.4f, 0.4f), new Vector3(0, 0, 2f), Vector3.zero, mat);
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.8f, 0.05f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.05f, 0.8f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
-                    
-                    // VFX: Bubbles
-                    CreateParticleSystem(vfxRoot, vfxCtrl.SmokeParticles, "Bubbles", new Color(1f, 1f, 1f, 0.5f), 1.5f, 0.8f, 1f);
+                    // VFX handled by VFX_TorpedoBubbles.prefab
                     break;
                 case "Tracer":
                     CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.15f, 1f, 0.15f), Vector3.zero, new Vector3(90, 0, 0), mat);
-                    
-                    // VFX: Glow Trail
-                    CreateParticleSystem(vfxRoot, vfxCtrl.FlameParticles, "Glow", color, 0.2f, 0.4f, 5f);
+                    // VFX handled by VFX_TracerGlow.prefab
                     break;
                 case "Tracer_Small":
                     // CIWS - Small, subtle tracers to avoid visual clutter from high fire rate
@@ -266,64 +221,91 @@ namespace NavalCommand.Editor.Generators
             }
         }
 
-        private static void CreateParticleSystem(GameObject parent, System.Collections.Generic.List<ParticleSystem> list, string name, Color color, float lifetime, float size, float speed)
+        /// <summary>
+        /// Create Flame particle system for missile projectiles.
+        /// Flame is attached as child to follow projectile lifecycle automatically.
+        /// </summary>
+        private static void CreateFlameParticleSystem(GameObject parent, Color baseColor)
         {
-            GameObject obj = new GameObject(name);
-            obj.transform.SetParent(parent.transform);
-            obj.transform.localPosition = Vector3.zero;
-            obj.transform.localRotation = Quaternion.identity;
+            GameObject flameObj = new GameObject("Flame");
+            flameObj.transform.SetParent(parent.transform);
+            flameObj.transform.localPosition = new Vector3(0, 0, -1.8f); // Missile rear
+            flameObj.transform.localRotation = Quaternion.identity;
 
-            ParticleSystem ps = obj.AddComponent<ParticleSystem>();
+            ParticleSystem ps = flameObj.AddComponent<ParticleSystem>();
             var main = ps.main;
-            main.startLifetime = lifetime;
-            main.startSpeed = speed;
-            main.startSize = size;
-            main.startColor = color;
-            main.simulationSpace = ParticleSystemSimulationSpace.World; // CRITICAL for persistence
-            main.playOnAwake = false; // Controlled by VFXController
+            main.startLifetime = 0.25f;
+            main.startSpeed = 2f; // Low initial speed, velocity over lifetime handles direction
+            main.startSize = 0.6f;
+            main.startColor = new Color(1f, 0.5f, 0f);
+            main.loop = true;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.maxParticles = 80;
 
+            // Emission
             var emission = ps.emission;
-            emission.rateOverTime = 50f;
+            emission.rateOverTime = 120f;
 
+            // Cone shape (will be overridden by velocity)
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
-            shape.angle = 5f;
-            shape.radius = 0.1f;
+            shape.angle = 8f;
+            shape.radius = 0.05f;
 
-            // Create and save material as asset (fixes pink rendering)
-            var renderer = obj.GetComponent<ParticleSystemRenderer>();
-            Shader particleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-            if (particleShader == null)
-            {
-                Debug.LogWarning("[WeaponAssetGenerator] URP Particles/Unlit shader not found, using fallback");
-                particleShader = Shader.Find("Particles/Standard Unlit");
-            }
-            
-            Material mat = new Material(particleShader);
-            mat.SetColor("_BaseColor", color);
-            mat.SetColor("_Color", color);
-            
-            // CRITICAL: Assign white texture to prevent pink error
-            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
-            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", Texture2D.whiteTexture);
-            
-            // Save material as asset
-            string matPath = $"Assets/_Project/Generated/Materials/Mat_Particle_{parent.name}_{name}.mat";
-            if (!AssetDatabase.IsValidFolder("Assets/_Project/Generated/Materials"))
-            {
-                if (!AssetDatabase.IsValidFolder("Assets/_Project/Generated"))
-                    AssetDatabase.CreateFolder("Assets/_Project", "Generated");
-                AssetDatabase.CreateFolder("Assets/_Project/Generated", "Materials");
-            }
-            AssetDatabase.CreateAsset(mat, matPath);
+            // CRITICAL: Use velocity over lifetime to make particles move backward
+            // This ensures flame always points opposite to missile movement direction
+            var velocityOverLifetime = ps.velocityOverLifetime;
+            velocityOverLifetime.enabled = true;
+            velocityOverLifetime.space = ParticleSystemSimulationSpace.Local;
+            velocityOverLifetime.z = new ParticleSystem.MinMaxCurve(-15f); // Backward velocity (-Z)
+
+            // Color over lifetime for flame effect
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new GradientColorKey[] {
+                    new GradientColorKey(new Color(1f, 0.8f, 0f), 0f),    // Bright yellow-orange
+                    new GradientColorKey(new Color(1f, 0.3f, 0f), 0.5f),  // Orange-red
+                    new GradientColorKey(new Color(0.5f, 0f, 0f), 1f)     // Dark red
+                },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(1f, 0f),
+                    new GradientAlphaKey(0.7f, 0.5f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            );
+            colorOverLifetime.color = new ParticleSystem.MinMaxGradient(gradient);
+
+            // Create material
+            Material flameMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Particles/Standard Unlit"));
+            flameMat.SetColor("_BaseColor", new Color(1f, 0.8f, 0.3f));
+            flameMat.SetColor("_Color", new Color(1f, 0.8f, 0.3f));
+            flameMat.EnableKeyword("_ALPHABLEND_ON");
+            if (flameMat.HasProperty("_Surface"))
+                flameMat.SetFloat("_Surface", 1); // Transparent
+            if (flameMat.HasProperty("_Blend"))
+                flameMat.SetFloat("_Blend", 0); // Alpha blend
+
+            string matPath = $"Assets/_Project/Generated/Materials/Mat_Flame_{parent.name}.mat";
+            AssetDatabase.CreateAsset(flameMat, matPath);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            
-            // Reload material from AssetDatabase to get proper asset reference
-            mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
-            renderer.sharedMaterial = mat;
 
-            list.Add(ps);
+            flameMat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (flameMat == null)
+            {
+                Debug.LogWarning($"[WeaponAssetGenerator] Failed to load flame material at {matPath}");
+                return;
+            }
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.material = flameMat;
+
+            // Initially disabled - will be enabled by ProjectileBehavior.Initialize()
+            flameObj.SetActive(false);
         }
 
         private static void CreatePrimitive(GameObject parent, PrimitiveType type, Vector3 scale, Vector3 pos, Vector3 rot, Material mat)

@@ -124,6 +124,32 @@ namespace NavalCommand.Entities.Projectiles
 
         public void Initialize(Vector3 velocity, Team team, WeaponType weaponType, float? customGravityY = null)
         {
+            // Re-enable Model GameObject
+            Transform modelTransform = transform.Find("Model");
+            if (modelTransform != null)
+            {
+                modelTransform.gameObject.SetActive(true);
+            }
+            
+            // Re-enable all mesh renderers
+            var meshRenderers = GetComponentsInChildren<MeshRenderer>(true);
+            foreach (var renderer in meshRenderers)
+            {
+                renderer.enabled = true;
+            }
+            
+            // NEW: Start Flame particle system (for missiles)
+            Transform flameTransform = transform.Find("Flame");
+            if (flameTransform != null)
+            {
+                flameTransform.gameObject.SetActive(true);
+                ParticleSystem ps = flameTransform.GetComponent<ParticleSystem>();
+                if (ps != null)
+                {
+                    ps.Play();
+                }
+            }
+            
             ProjectileTeam = team;
             SourceWeaponType = weaponType;
             
@@ -392,6 +418,33 @@ namespace NavalCommand.Entities.Projectiles
             }
 
             isDespawning = true;
+            
+            // NEW: Stop Flame particle system immediately (for missiles)
+            Transform flameTransform = transform.Find("Flame");
+            if (flameTransform != null)
+            {
+                ParticleSystem ps = flameTransform.GetComponent<ParticleSystem>();
+                if (ps != null)
+                {
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    ps.Clear(true);
+                }
+                // Flame will be hidden with Model below via SetActive(false)
+            }
+            
+            // AGGRESSIVE: Immediately hide the entire Model GameObject
+            Transform modelTransform = transform.Find("Model");
+            if (modelTransform != null)
+            {
+                modelTransform.gameObject.SetActive(false);
+            }
+            
+            // Also disable all mesh renderers as backup
+            var meshRenderers = GetComponentsInChildren<MeshRenderer>();
+            foreach (var renderer in meshRenderers)
+            {
+                renderer.enabled = false;
+            }
             
             if (PoolManager.Instance != null)
             {

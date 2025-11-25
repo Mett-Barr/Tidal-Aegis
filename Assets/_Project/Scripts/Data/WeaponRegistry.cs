@@ -35,7 +35,7 @@ namespace NavalCommand.Data
             Spread = 0f,
 
             ProjectileName = "Projectile_Missile",
-            ProjectileColor = Color.red,
+            ProjectileColor = new Color(0.7f, 0.7f, 0.7f), // Gray to avoid confusion with orange flame
             ProjectileStyle = "Missile",
             MovementLogicName = "GuidedMissile",
             CruiseHeight = 15f,
