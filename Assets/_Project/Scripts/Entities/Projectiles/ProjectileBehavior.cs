@@ -86,22 +86,21 @@ namespace NavalCommand.Entities.Projectiles
 
         private void Start()
         {
-            if (GetComponent<TrailRenderer>() == null)
-            {
-                var trail = gameObject.AddComponent<TrailRenderer>();
-                trail.time = 0.5f;
-                trail.startWidth = 0.2f;
-                trail.endWidth = 0.0f;
-                trail.material = new Material(Shader.Find("Sprites/Default"));
-                trail.startColor = new Color(1f, 0.8f, 0f, 1f); 
-                trail.endColor = new Color(1f, 0f, 0f, 0f); 
-            }
+            // TrailRenderer system has been replaced by ProjectileVFXController
+            // Defensive cleanup code remains in OnEnable() and Initialize() for backward compatibility
         }
+
 
         private void OnEnable()
         {
             isDespawning = false;
             isInitialized = false; 
+            
+            // Reset VFX controller for pooling (fixes intermittent VFX disappearance)
+            if (_vfxController != null)
+            {
+                _vfxController.Reset();
+            }
             
             TrailRenderer trail = GetComponent<TrailRenderer>();
             if (trail != null) trail.Clear();
@@ -172,6 +171,13 @@ namespace NavalCommand.Entities.Projectiles
 
             _lifetimeTimer = 0f;
             _spawnTime = Time.time; // Track spawn time
+            
+            // Launch VFX
+            if (_vfxController != null)
+            {
+                _vfxController.OnLaunch();
+            }
+            
             isInitialized = true;
         }
 
@@ -349,6 +355,12 @@ namespace NavalCommand.Entities.Projectiles
                 {
                     return; // Friendly Fire ignored
                 }
+            }
+            
+            // Trigger Impact VFX (Detach and Fade)
+            if (_vfxController != null)
+            {
+                _vfxController.OnImpact();
             }
             
             // VFX

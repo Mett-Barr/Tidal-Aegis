@@ -21,6 +21,63 @@ namespace NavalCommand.Entities.Projectiles
         public float AutoDestructDelay = 5.0f; // Time to wait for smoke to fade before destroying detached object
 
         private bool _isDetached = false;
+        private Transform _originalParent; // Store original parent for reset
+
+        private void Awake()
+        {
+            // Store the original parent (VFX_Root) for reset
+            if (FlameParticles.Count > 0 && FlameParticles[0] != null)
+            {
+                _originalParent = FlameParticles[0].transform.parent;
+            }
+            else if (SmokeParticles.Count > 0 && SmokeParticles[0] != null)
+            {
+                _originalParent = SmokeParticles[0].transform.parent;
+            }
+        }
+
+        /// <summary>
+        /// Reset the VFX controller state. Call this when pooling/reusing projectiles.
+        /// </summary>
+        public void Reset()
+        {
+            _isDetached = false;
+            
+            // Remove null particles from lists (they may have been destroyed when detached)
+            FlameParticles.RemoveAll(ps => ps == null);
+            SmokeParticles.RemoveAll(ps => ps == null);
+            
+            // Re-parent any particles that were detached but still exist
+            if (_originalParent != null)
+            {
+                int reparentedFlame = 0;
+                int reparentedSmoke = 0;
+                
+                foreach (var ps in FlameParticles)
+                {
+                    if (ps != null && ps.transform.parent != _originalParent)
+                    {
+                        ps.transform.SetParent(_originalParent, false);
+                        reparentedFlame++;
+                    }
+                }
+                foreach (var ps in SmokeParticles)
+                {
+                    if (ps != null && ps.transform.parent != _originalParent)
+                    {
+                        ps.transform.SetParent(_originalParent, false);
+                        reparentedSmoke++;
+                    }
+                }
+                
+                if (reparentedFlame > 0 || reparentedSmoke > 0)
+                {
+                    Debug.Log($"[VFXController] Reset: Re-parented {reparentedFlame} flame, {reparentedSmoke} smoke particles");
+                }
+            }
+            
+            Debug.Log($"[VFXController] Reset complete: {FlameParticles.Count} flame, {SmokeParticles.Count} smoke particles");
+        }
 
         /// <summary>
         /// Called when the projectile is fired.
@@ -100,6 +157,11 @@ namespace NavalCommand.Entities.Projectiles
                 {
                     // Auto-destroy the holder after delay
                     Destroy(vfxHolder, AutoDestructDelay);
+                    
+                    // CRITICAL: Clear the smoke particles list since they've been detached
+                    // This prevents stale references when the projectile is pooled and reused
+                    SmokeParticles.Clear();
+                    Debug.Log($"[VFXController] OnImpact: Detached and cleared {SmokeParticles.Count} smoke particles");
                 }
                 else
                 {

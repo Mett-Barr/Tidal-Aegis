@@ -22,7 +22,11 @@ namespace NavalCommand.Editor
             Debug.Log("[ContentRebuilder] Generating VFX...");
             VFXAssetGenerator.GenerateAll();
 
-            // 4. UI/HUD (Optional)
+            // 4. Refresh Projectile Prefabs (Fix AssetDatabase cache)
+            Debug.Log("[ContentRebuilder] Refreshing Projectile Prefabs...");
+            NavalCommand.Utils.AssetRefresher.RefreshProjectilePrefabs();
+
+            // 5. UI/HUD (Optional)
             // HUDGenerator.Generate(); 
 
             Debug.Log("[ContentRebuilder] Rebuild Complete!");

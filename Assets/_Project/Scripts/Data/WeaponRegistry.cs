@@ -105,7 +105,7 @@ namespace NavalCommand.Data
             Spread = 0.3f,
 
             ProjectileName = "Projectile_CIWS",
-            ProjectileColor = Color.white,
+            ProjectileColor = new Color(0.85f, 0.65f, 0.35f), // Brass/Copper tracer color
             ProjectileStyle = "Tracer_Small",
             MovementLogicName = "Ballistic",
             ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Small),

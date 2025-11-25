@@ -1,0 +1,169 @@
+=== PROJECTILE DIAGNOSTICS ===
+
+--- Projectile_FlagshipGun ---
+  Model GameObject: FOUND
+  Model Active: True
+  Model Children: 2
+  MeshRenderers Found: 2
+
+  Renderer 0 (Cylinder):
+    Enabled: True
+    Materials Count: 1
+    [ERROR] Material is NULL
+
+  Renderer 1 (Sphere):
+    Enabled: True
+    Materials Count: 1
+    [ERROR] Material is NULL
+
+  Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_FlagshipGun.mat):
+    Shader: Universal Render Pipeline/Lit
+    _BaseColor: RGBA(1.000, 0.922, 0.016, 1.000)
+
+--- Projectile_Missile ---
+  Model GameObject: FOUND
+  Model Active: True
+  Model Children: 4
+  MeshRenderers Found: 4
+
+  Renderer 0 (Cylinder):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Missile
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 1 (Capsule):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Missile
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 2 (Cube):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Missile
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 3 (Cube):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Missile
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Color: RGBA(1.000, 0.000, 0.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_Missile.mat):
+    Shader: Universal Render Pipeline/Lit
+    _BaseColor: RGBA(1.000, 0.000, 0.000, 1.000)
+
+--- Projectile_Torpedo ---
+  Model GameObject: FOUND
+  Model Active: True
+  Model Children: 4
+  MeshRenderers Found: 4
+
+  Renderer 0 (Cylinder):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Torpedo
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Color: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 1 (Sphere):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Torpedo
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Color: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 2 (Cube):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Torpedo
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Color: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Renderer 3 (Cube):
+    Enabled: True
+    Materials Count: 1
+    Material: Mat_Projectile_Torpedo
+      Shader: Universal Render Pipeline/Lit
+      _BaseColor: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Color: RGBA(0.000, 0.000, 1.000, 1.000) (Alpha: 1)
+      _Surface: 0 (0=Opaque, 1=Transparent)
+      _Blend: 0
+      RenderQueue: 2000
+      GlobalIllumination: EmissiveIsBlack
+
+  Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_Torpedo.mat):
+    Shader: Universal Render Pipeline/Lit
+    _BaseColor: RGBA(0.000, 0.000, 1.000, 1.000)
+
+--- Projectile_Autocannon ---
+  Model GameObject: FOUND
+  Model Active: True
+  Model Children: 1
+  MeshRenderers Found: 1
+
+  Renderer 0 (Capsule):
+    Enabled: True
+    Materials Count: 1
+    [ERROR] Material is NULL
+
+  Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_Autocannon.mat):
+    Shader: Universal Render Pipeline/Lit
+    _BaseColor: RGBA(1.000, 0.500, 0.000, 1.000)
+
+--- Projectile_CIWS ---
+  Model GameObject: FOUND
+  Model Active: True
+  Model Children: 1
+  MeshRenderers Found: 1
+
+  Renderer 0 (Capsule):
+    Enabled: True
+    Materials Count: 1
+    [ERROR] Material is NULL
+
+  Material Asset (Assets/_Project/Generated/Materials/Mat_Projectile_CIWS.mat):
+    Shader: Universal Render Pipeline/Lit
+    _BaseColor: RGBA(1.000, 1.000, 1.000, 1.000)
+
+=== END DIAGNOSTICS ===

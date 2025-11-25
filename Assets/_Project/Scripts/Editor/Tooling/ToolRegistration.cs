@@ -27,9 +27,9 @@ namespace NavalCommand.Editor
             }, "為所有重量等級生成基礎的船殼 Prefab。");
 
             // --- Assets & VFX (資源與特效) ---
-            registry.Register("資源與特效 (Assets)", "重建特效資源 (Rebuild VFX)", () => {
+            registry.Register("資源與特效 (Assets)", "僅重建 VFX (VFX Only)", () => {
                 Generators.VFXAssetGenerator.GenerateAll();
-            }, "重新生成 VFX 材質並將其連結到 Prefab。修復粉紅色材質問題。");
+            }, "僅重新生成 VFX 材質（不重建整個世界）。用於快速迭代特效效果。注意：「重建世界」已包含此步驟。");
 
             // --- Debugging (除錯) ---
             registry.Register("除錯工具 (Debug)", "檢查 Shader (Check Shaders)", () => {
@@ -39,6 +39,14 @@ namespace NavalCommand.Editor
             registry.Register("除錯工具 (Debug)", "檢查特效材質 (Check Materials)", () => {
                 MaterialDebugger.CheckVFXMaterials();
             }, "檢查生成的材質是否正確指派了 Shader。");
+
+            registry.Register("除錯工具 (Debug)", "診斷彈道模型 (Diagnose Projectiles)", () => {
+                ProjectileDiagnostics.CheckAllProjectiles();
+            }, "檢查所有彈道 Prefab 的模型、材質和渲染器狀態，輸出詳細診斷報告。");
+
+            registry.Register("除錯工具 (Debug)", "刷新彈道 Prefabs (Refresh Prefabs)", () => {
+                AssetRefresher.RefreshProjectilePrefabs();
+            }, "強制重新導入所有彈道 Prefab，解決 AssetDatabase 緩存問題。");
             
             // --- UI ---
              registry.Register("介面 (UI)", "生成 HUD (Generate HUD)", () => {

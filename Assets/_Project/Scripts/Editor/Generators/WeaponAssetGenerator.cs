@@ -199,6 +199,20 @@ namespace NavalCommand.Editor.Generators
                 AssetDatabase.CreateFolder("Assets/_Project/Generated", "Materials");
             }
             AssetDatabase.CreateAsset(mat, matPath);
+            
+            // CRITICAL FIX: Force save and refresh to ensure material is fully written to disk
+            // before it's referenced by the prefab. Without this, some prefabs may have NULL material references.
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            
+            // CRITICAL FIX 2: Reload the material from AssetDatabase to get the proper asset reference
+            // Using the in-memory 'mat' object will cause NULL references when the prefab is saved.
+            mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null)
+            {
+                Debug.LogError($"[WeaponAssetGenerator] Failed to load material at {matPath}");
+                return; // Cannot continue without material
+            }
 
             // Create Mesh Model
             GameObject model = new GameObject("Model");
@@ -215,8 +229,9 @@ namespace NavalCommand.Editor.Generators
             switch (style)
             {
                 case "Shell": 
-                    CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.4f, 0.8f, 0.4f), Vector3.zero, new Vector3(90, 0, 0), mat);
-                    CreatePrimitive(model, PrimitiveType.Sphere, new Vector3(0.38f, 0.4f, 0.4f), new Vector3(0, 0, 0.8f), Vector3.zero, mat);
+                    // Flagship Gun - Large, imposing shells
+                    CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.6f, 1.2f, 0.6f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    CreatePrimitive(model, PrimitiveType.Sphere, new Vector3(0.58f, 0.6f, 0.6f), new Vector3(0, 0, 1.2f), Vector3.zero, mat);
                     break;
                 case "Missile":
                     CreatePrimitive(model, PrimitiveType.Cylinder, new Vector3(0.3f, 1.5f, 0.3f), Vector3.zero, new Vector3(90, 0, 0), mat);
@@ -234,18 +249,19 @@ namespace NavalCommand.Editor.Generators
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.8f, 0.05f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
                     CreatePrimitive(model, PrimitiveType.Cube, new Vector3(0.05f, 0.8f, 0.3f), new Vector3(0, 0, -1.8f), Vector3.zero, mat);
                     
-                    // VFX: Bubbles (Smoke logic but white/blue)
+                    // VFX: Bubbles
                     CreateParticleSystem(vfxRoot, vfxCtrl.SmokeParticles, "Bubbles", new Color(1f, 1f, 1f, 0.5f), 1.5f, 0.8f, 1f);
                     break;
                 case "Tracer":
                     CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.15f, 1f, 0.15f), Vector3.zero, new Vector3(90, 0, 0), mat);
                     
-                    // VFX: Glow Trail (Flame logic)
+                    // VFX: Glow Trail
                     CreateParticleSystem(vfxRoot, vfxCtrl.FlameParticles, "Glow", color, 0.2f, 0.4f, 5f);
                     break;
                 case "Tracer_Small":
-                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.3f, 2.0f, 0.3f), Vector3.zero, new Vector3(90, 0, 0), mat);
-                    CreateParticleSystem(vfxRoot, vfxCtrl.FlameParticles, "Glow", color, 0.2f, 0.6f, 5f);
+                    // CIWS - Small, subtle tracers to avoid visual clutter from high fire rate
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.08f, 0.6f, 0.08f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    // No VFX for CIWS - the tracer bullets themselves provide visual feedback through high fire rate
                     break;
             }
         }
@@ -274,8 +290,38 @@ namespace NavalCommand.Editor.Generators
             shape.angle = 5f;
             shape.radius = 0.1f;
 
+            // Create and save material as asset (fixes pink rendering)
             var renderer = obj.GetComponent<ParticleSystemRenderer>();
-            renderer.material = new Material(Shader.Find("Sprites/Default")); // Simple sprite
+            Shader particleShader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (particleShader == null)
+            {
+                Debug.LogWarning("[WeaponAssetGenerator] URP Particles/Unlit shader not found, using fallback");
+                particleShader = Shader.Find("Particles/Standard Unlit");
+            }
+            
+            Material mat = new Material(particleShader);
+            mat.SetColor("_BaseColor", color);
+            mat.SetColor("_Color", color);
+            
+            // CRITICAL: Assign white texture to prevent pink error
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", Texture2D.whiteTexture);
+            if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", Texture2D.whiteTexture);
+            
+            // Save material as asset
+            string matPath = $"Assets/_Project/Generated/Materials/Mat_Particle_{parent.name}_{name}.mat";
+            if (!AssetDatabase.IsValidFolder("Assets/_Project/Generated/Materials"))
+            {
+                if (!AssetDatabase.IsValidFolder("Assets/_Project/Generated"))
+                    AssetDatabase.CreateFolder("Assets/_Project", "Generated");
+                AssetDatabase.CreateFolder("Assets/_Project/Generated", "Materials");
+            }
+            AssetDatabase.CreateAsset(mat, matPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            
+            // Reload material from AssetDatabase to get proper asset reference
+            mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            renderer.sharedMaterial = mat;
 
             list.Add(ps);
         }
