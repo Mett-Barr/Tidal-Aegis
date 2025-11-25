@@ -26,6 +26,7 @@
 ### [武器系统](Documentation/WEAPON_SYSTEM.md)
 - 武器资源生成
 - 弹道系统
+- 炮塔控制架构 (2-Axis)
 - VFX集成
 
 ---

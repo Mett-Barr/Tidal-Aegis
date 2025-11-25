@@ -43,6 +43,9 @@ namespace NavalCommand.Systems
         public float MinDistance = 20f;
         public float MaxDistance = 2000f;
         public float ZoomSensitivity = 5f;
+        public float PanSpeed = 50f;
+
+        private Vector3 manualOffset = Vector3.zero; // For arrow key panning
 
         private void LateUpdate()
         {
@@ -75,14 +78,41 @@ namespace NavalCommand.Systems
 
         private void HandleInput()
         {
+            // Zoom (Mouse Scroll + Keyboard +/-)
+            float zoomDelta = 0f;
             if (Infrastructure.InputReader.Instance != null)
             {
-                float zoomDelta = Infrastructure.InputReader.Instance.ZoomDelta;
-                if (Mathf.Abs(zoomDelta) > 0.01f)
-                {
-                    Distance -= zoomDelta * ZoomSensitivity;
-                    Distance = Mathf.Clamp(Distance, MinDistance, MaxDistance);
-                }
+                zoomDelta = Infrastructure.InputReader.Instance.ZoomDelta;
+            }
+
+            // Keyboard Zoom Support
+            if (Input.GetKey(KeyCode.Equals) || Input.GetKey(KeyCode.KeypadPlus)) zoomDelta += 0.1f;
+            if (Input.GetKey(KeyCode.Minus) || Input.GetKey(KeyCode.KeypadMinus)) zoomDelta -= 0.1f;
+
+            if (Mathf.Abs(zoomDelta) > 0.001f)
+            {
+                Distance -= zoomDelta * ZoomSensitivity;
+                Distance = Mathf.Clamp(Distance, MinDistance, MaxDistance);
+            }
+
+            // Pan (Arrow Keys)
+            float h = Input.GetAxis("Horizontal"); // A/D or Left/Right
+            float v = Input.GetAxis("Vertical");   // W/S or Up/Down
+            
+            // Only pan if Flagship movement is disabled (to avoid conflict), or just allow it always for debug
+            // Since user asked to replace flagship control, we assume arrows now control camera pan
+            if (Mathf.Abs(h) > 0.1f || Mathf.Abs(v) > 0.1f)
+            {
+                // Pan relative to camera look direction
+                Vector3 forward = camTransform.forward;
+                Vector3 right = camTransform.right;
+                
+                // Flatten to horizontal plane
+                forward.y = 0; forward.Normalize();
+                right.y = 0; right.Normalize();
+
+                Vector3 moveDir = (right * h + forward * v).normalized;
+                manualOffset += moveDir * PanSpeed * Time.deltaTime;
             }
         }
 
@@ -127,7 +157,7 @@ namespace NavalCommand.Systems
             Quaternion currentRotation = Quaternion.Euler(0, Target.eulerAngles.y, 0);
             Vector3 rotatedOffset = currentRotation * offset;
             
-            return Target.position + rotatedOffset;
+            return Target.position + rotatedOffset + manualOffset;
         }
 
         private void OnValidate()

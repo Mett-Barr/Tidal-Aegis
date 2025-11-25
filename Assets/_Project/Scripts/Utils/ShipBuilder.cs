@@ -188,36 +188,97 @@ namespace NavalCommand.Utils
             GameObject container = new GameObject($"Weapon_{type}");
             
             // Use the shared material for everything to ensure consistency
-            // If we want different colors, we should use different materials, but user requested unification.
-            // However, barrels usually are darker. 
-            // User said: "Can we unify using the hull's material?"
-            // So we will use sharedMat for the main body.
             
             switch (type)
             {
                 case WeaponType.FlagshipGun:
-                    // Standard Turret
-                    GameObject baseObj = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1.5f, 0.5f, 1.5f), Vector3.zero);
+                    // Grand Triple-Barrel Main Gun (Upgraded Visuals)
+                    // 1. Turret Base (Yaw) - Large Barbette
+                    GameObject baseObj = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(3.2f, 0.8f, 3.2f), Vector3.zero);
+                    baseObj.name = "TurretBase"; 
                     baseObj.GetComponent<Renderer>().sharedMaterial = sharedMat;
                     
-                    GameObject barrel = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.15f, 1.2f, 0.15f), new Vector3(0.2f, 0, 0.6f), new Vector3(90, 0, 0));
-                    barrel.GetComponent<Renderer>().sharedMaterial = sharedMat; 
-                    // If we want black barrels, we'd need a separate material. 
-                    // But "Unify using hull's material" implies single material usage or at least consistent base.
-                    // Let's stick to sharedMat for now to be safe.
+                    // 2. Turret Gun (Pitch) - Armored Gun House
+                    // Pivot at Trunnion Height
+                    GameObject gunObj = new GameObject("TurretGun");
+                    gunObj.transform.SetParent(baseObj.transform);
+                    gunObj.transform.localPosition = new Vector3(0, 0.6f, 0);
+
+                    // Gun House Visuals (Boxy armor)
+                    // Main block - Wider and Longer
+                    // Z-Center at 0.0, Length 4.5 -> Range [-2.25, 2.25]
+                    CreatePrimitive(gunObj, PrimitiveType.Cube, new Vector3(3.6f, 1.4f, 4.5f), new Vector3(0, 0.3f, 0.0f)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    
+                    // Sloped front armor
+                    CreatePrimitive(gunObj, PrimitiveType.Cube, new Vector3(3.4f, 1.2f, 1.5f), new Vector3(0, 0.2f, 2.5f)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+                    // 3. Barrels (Triple) - Thicker and Longer
+                    // Unity Cylinder Height=2. Scale Y=4 -> Actual Length=8.
+                    float barrelScaleLen = 4.5f; // Actual Length = 9.0
+                    float barrelDia = 0.7f;      // Thicker (was 0.3)
+                    float barrelSpacing = 1.1f;  // Wider spacing
+
+                    // Barrel Position Z
+                    // We want the breech to be hidden inside the house.
+                    // House Back is at -2.25.
+                    // If Center is at Z=3.5. Back is at 3.5 - 4.5 = -1.0. 
+                    // -1.0 is > -2.25, so it is inside.
+                    float barrelZ = 3.5f;
+
+                    // Center Barrel
+                    GameObject bCenter = CreatePrimitive(gunObj, PrimitiveType.Cylinder, new Vector3(barrelDia, barrelScaleLen, barrelDia), new Vector3(0, 0, barrelZ), new Vector3(90, 0, 0));
+                    bCenter.GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    
+                    // Left Barrel
+                    GameObject bLeft = CreatePrimitive(gunObj, PrimitiveType.Cylinder, new Vector3(barrelDia, barrelScaleLen, barrelDia), new Vector3(-barrelSpacing, 0, barrelZ), new Vector3(90, 0, 0));
+                    bLeft.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+                    // Right Barrel
+                    GameObject bRight = CreatePrimitive(gunObj, PrimitiveType.Cylinder, new Vector3(barrelDia, barrelScaleLen, barrelDia), new Vector3(barrelSpacing, 0, barrelZ), new Vector3(90, 0, 0));
+                    bRight.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+                    // 4. FirePoints (At tip of barrels)
+                    // Tip = CenterZ + HalfLength = 3.5 + 4.5 = 8.0
+                    float firePointZ = barrelZ + barrelScaleLen;
+
+                    // Center (Primary)
+                    GameObject fpMain = new GameObject("FirePoint");
+                    fpMain.transform.SetParent(gunObj.transform);
+                    fpMain.transform.localPosition = new Vector3(0, 0, firePointZ); 
+
+                    // Left
+                    GameObject fpLeft = new GameObject("FirePoint_L");
+                    fpLeft.transform.SetParent(gunObj.transform);
+                    fpLeft.transform.localPosition = new Vector3(-barrelSpacing, 0, firePointZ);
+
+                    // Right
+                    GameObject fpRight = new GameObject("FirePoint_R");
+                    fpRight.transform.SetParent(gunObj.transform);
+                    fpRight.transform.localPosition = new Vector3(barrelSpacing, 0, firePointZ);
                     break;
 
                 case WeaponType.CIWS:
-                    // Phalanx style
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.8f, 1.2f, 0.8f), new Vector3(0, 0.6f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Sphere, new Vector3(0.7f, 0.7f, 0.7f), new Vector3(0, 1.2f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.2f, 1f, 0.2f), new Vector3(0, 1.0f, 0.6f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreateCIWSTurret(container, sharedMat);
                     break;
 
                 case WeaponType.Autocannon:
                     // Single Barrel Quick Firing
-                    CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.6f, 0.6f, 0.6f), new Vector3(0, 0.3f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.1f, 1.0f, 0.1f), new Vector3(0, 0.5f, 0.5f), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    GameObject autoBase = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.6f, 0.6f, 0.6f), new Vector3(0, 0.3f, 0));
+                    autoBase.name = "TurretBase";
+                    autoBase.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+                    // Add TurretGun pivot for Pitch
+                    GameObject autoGun = new GameObject("TurretGun");
+                    autoGun.transform.SetParent(autoBase.transform);
+                    autoGun.transform.localPosition = new Vector3(0, 0.5f, 0);
+
+                    GameObject autoBarrel = CreatePrimitive(autoGun, PrimitiveType.Cylinder, new Vector3(0.1f, 1.0f, 0.1f), new Vector3(0, 0, 0.5f), new Vector3(90, 0, 0));
+                    autoBarrel.GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    
+                    // FirePoint
+                    GameObject fpAuto = new GameObject("FirePoint");
+                    fpAuto.transform.SetParent(autoGun.transform); // Attached to Gun (Pitch)
+                    fpAuto.transform.localPosition = new Vector3(0, 0, 1.2f);
                     break;
 
                 case WeaponType.Missile:
@@ -243,14 +304,58 @@ namespace NavalCommand.Utils
 
                 case WeaponType.Torpedo:
                     // Triple Tube
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
-                    CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    // Torpedo tubes usually rotate, so let's make the base the rotator
+                    GameObject torpBase = CreatePrimitive(container, PrimitiveType.Cylinder, new Vector3(1f, 0.2f, 1f), Vector3.zero);
+                    torpBase.name = "TurretBase";
+                    torpBase.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+                    CreatePrimitive(torpBase, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(-0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(torpBase, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    CreatePrimitive(torpBase, PrimitiveType.Cylinder, new Vector3(0.3f, 2f, 0.3f), new Vector3(0.35f, 0.3f, 0), new Vector3(90, 0, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+                    
+                    // FirePoint
+                    GameObject fpTorp = new GameObject("FirePoint");
+                    fpTorp.transform.SetParent(torpBase.transform);
+                    fpTorp.transform.localPosition = new Vector3(0, 0.3f, 1.5f);
                     break;
             }
 
             return container;
+        }
+
+        private void CreateCIWSTurret(GameObject container, Material sharedMat)
+        {
+            // Phalanx CIWS Structure
+            // 1. Turret Base (Yaw Axis) - The square block that sits on deck
+            GameObject turretBase = new GameObject("TurretBase");
+            turretBase.transform.SetParent(container.transform);
+            turretBase.transform.localPosition = Vector3.zero;
+            
+            // Base Visuals
+            CreatePrimitive(turretBase, PrimitiveType.Cube, new Vector3(1.2f, 0.8f, 1.2f), new Vector3(0, 0.4f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // 2. Turret Gun (Pitch Axis) - The U-shaped mount + Gun + Radar
+            // GEOMETRY FIX: Move Pivot to the actual Barrel Axis height (0.8f)
+            // Previously was 1.0f, with barrels at -0.2f. Now Pivot is at 0.8f, Barrels at 0.0f.
+            GameObject turretGun = new GameObject("TurretGun");
+            turretGun.transform.SetParent(turretBase.transform);
+            turretGun.transform.localPosition = new Vector3(0, 0.8f, 0); // Pivot point at Trunnion Height
+
+            // Gun Block (Central housing) - Offset UP because pivot moved DOWN
+            CreatePrimitive(turretGun, PrimitiveType.Cube, new Vector3(0.8f, 1.0f, 1.0f), new Vector3(0, 0.2f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+            
+            // Radar Dome (Top) - Offset UP
+            CreatePrimitive(turretGun, PrimitiveType.Sphere, new Vector3(0.9f, 0.9f, 0.9f), new Vector3(0, 1.0f, 0)).GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // Barrels (Gatling Gun) - ALIGNED with Pivot (Y=0)
+            GameObject barrels = CreatePrimitive(turretGun, PrimitiveType.Cylinder, new Vector3(0.3f, 1.8f, 0.3f), new Vector3(0, 0f, 1.2f), new Vector3(90, 0, 0));
+            barrels.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // 3. FirePoint - At tip of barrels, ALIGNED with Pivot (Y=0)
+            GameObject firePoint = new GameObject("FirePoint");
+            firePoint.transform.SetParent(turretGun.transform);
+            firePoint.transform.localPosition = new Vector3(0, 0f, 2.5f); // Aligned with barrels
+            firePoint.transform.localRotation = Quaternion.identity;
         }
 
         private Material GetOrSaveMaterial(string name, Color color)

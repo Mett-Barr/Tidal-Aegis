@@ -65,10 +65,23 @@ namespace NavalCommand.Entities.Units
             }
         }
 
+        [Header("Debug Control")]
+        public bool EnableMovement = false; // Default disabled as requested
+
         protected override void Update()
         {
             base.Update();
             ApplyWeaponSettings();
+
+            // Disable movement input processing if flag is false
+            if (!EnableMovement)
+            {
+                // Reset inputs to stop moving
+                targetSpeed = 0;
+                targetTurnRate = 0;
+                CurrentThrottle = ThrottleState.Stop;
+                CurrentRudder = RudderState.Center;
+            }
         }
 
         private void ApplyWeaponSettings()

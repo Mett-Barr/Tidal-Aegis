@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using NavalCommand.Data;
@@ -123,7 +124,8 @@ namespace NavalCommand.Editor.Generators
             rb.drag = 1f;
             rb.angularDrag = 2f;
             rb.useGravity = false; // Floating
-            rb.isKinematic = true; // Moved by script
+            rb.isKinematic = false; // CRITICAL: Must be false for Rb.velocity to work in KamikazeController
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous; // Better for high speed impacts
             
             SaveShipPrefab(shipRoot, "Ship_Kamikaze");
         }
@@ -209,7 +211,15 @@ namespace NavalCommand.Editor.Generators
             weaponVisual.transform.localRotation = Quaternion.identity;
 
             // 2. Setup FirePoint
-            Transform firePoint = weaponVisual.transform.Find("FirePoint");
+            // Search recursively because FirePoint might be nested (e.g. inside TurretGun)
+            Transform firePoint = weaponVisual.transform.Find("FirePoint"); // Try direct child first
+            if (firePoint == null)
+            {
+                // Try finding deep
+                var firePoints = weaponVisual.GetComponentsInChildren<Transform>().Where(t => t.name == "FirePoint").ToArray();
+                if (firePoints.Length > 0) firePoint = firePoints[0];
+            }
+
             if (firePoint == null)
             {
                 firePoint = new GameObject("FirePoint").transform;
@@ -239,6 +249,24 @@ namespace NavalCommand.Editor.Generators
             // Apply Platform Settings from SO
             rotator.CanRotate = stats.CanRotate;
             rotator.IsVerticalLaunch = stats.IsVLS;
+
+            // CRITICAL FIX: Adjust Pitch Limits for close-in defense
+            // Flagship deck is high, so we need significant depression to hit close targets (Kamikaze)
+            if (type == WeaponType.Autocannon)
+            {
+                rotator.MinPitch = -45f; // Allow shooting down at steep angle
+                rotator.MaxPitch = 89f;  // Allow shooting almost straight up
+            }
+            else if (type == WeaponType.CIWS)
+            {
+                rotator.MinPitch = -30f; // Phalanx usually has -25, giving it a bit more
+                rotator.MaxPitch = 89f;  // Anti-missile needs high elevation
+            }
+            else
+            {
+                rotator.MinPitch = -10f; // Standard main gun limit
+                rotator.MaxPitch = 60f;  // Main guns usually don't elevate that high
+            }
         }
 
         private static void SaveShipPrefab(GameObject shipRoot, string name)

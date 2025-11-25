@@ -9,59 +9,73 @@ namespace NavalCommand.Entities.Components
     public class TurretRotator : MonoBehaviour
     {
         [Header("References")]
-        [SerializeField] private Transform _turretBase;
+        [SerializeField] private Transform _azimuthTransform;   // Base (Yaw)
+        [SerializeField] private Transform _elevationTransform; // Gun (Pitch)
         [SerializeField] private Transform _firePoint;
 
-        [Header("Debug")]
-        // [SerializeField] private bool _drawDebugGizmos = true;
-        private Vector3? _lastTargetPos;
-
-        [Header("Platform Capabilities")]
+        [Header("Settings")]
+        public float MinPitch = -10f;
+        public float MaxPitch = 85f;
         public bool CanRotate = true;
         public bool IsVerticalLaunch = false;
 
-        public void Initialize(Transform turretBase, Transform firePoint)
+        public void Initialize(Transform azimuth, Transform elevation, Transform firePoint)
         {
-            _turretBase = turretBase;
+            _azimuthTransform = azimuth;
+            _elevationTransform = elevation;
             _firePoint = firePoint;
         }
 
-        /// <summary>
-        /// Rotates the turret so that the FirePoint faces the target position.
-        /// </summary>
         public void AimAt(Vector3 targetPosition, float rotationSpeed)
         {
-            if (!CanRotate || _turretBase == null || _firePoint == null) return;
+            if (!CanRotate || _azimuthTransform == null || _elevationTransform == null) return;
+
+            Vector3 targetDir = targetPosition - _azimuthTransform.position;
             
-            _lastTargetPos = targetPosition;
+            // 1. Azimuth (Yaw) - Rotate Base around Y axis
+            Vector3 targetDirFlattened = new Vector3(targetDir.x, 0, targetDir.z);
+            if (targetDirFlattened.sqrMagnitude > 0.001f)
+            {
+                Quaternion targetYaw = Quaternion.LookRotation(targetDirFlattened);
+                _azimuthTransform.rotation = Quaternion.RotateTowards(_azimuthTransform.rotation, targetYaw, rotationSpeed * Time.deltaTime);
+            }
 
-            Vector3 directionToTarget = (targetPosition - _firePoint.position).normalized;
-            if (directionToTarget == Vector3.zero) return;
+            // 2. Elevation (Pitch) - Rotate Gun around X axis (Local)
+            // Calculate target direction relative to the GUN's position, but in the BASE's local space
+            // This accounts for the height offset of the gun from the base
+            Vector3 targetVector = targetPosition - _elevationTransform.position;
+            Vector3 localTargetVector = _azimuthTransform.InverseTransformDirection(targetVector);
 
-            // Calculate target rotation for the FirePoint to face the target
-            Quaternion targetFirePointRotation = Quaternion.LookRotation(directionToTarget);
+            float flatDistance = Mathf.Sqrt(localTargetVector.x * localTargetVector.x + localTargetVector.z * localTargetVector.z);
+            float angle = Mathf.Atan2(localTargetVector.y, flatDistance) * Mathf.Rad2Deg;
             
-            // Apply the inverse of the FirePoint's local rotation to find the needed Turret rotation
-            // Turret * Local = Target => Turret = Target * Inverse(Local)
-            // This compensates for any local rotation offset (e.g. -90 degrees) on the FirePoint
-            Quaternion targetTurretRotation = targetFirePointRotation * Quaternion.Inverse(_firePoint.localRotation);
+            // Clamp pitch
+            angle = Mathf.Clamp(-angle, -MaxPitch, -MinPitch); // Note: Negative angle because X-axis rotation is inverted for look up
 
-            // Smoothly rotate the turret base
-            _turretBase.rotation = Quaternion.RotateTowards(_turretBase.rotation, targetTurretRotation, rotationSpeed * Time.deltaTime);
+            Quaternion targetPitch = Quaternion.Euler(angle, 0, 0);
+            _elevationTransform.localRotation = Quaternion.RotateTowards(_elevationTransform.localRotation, targetPitch, rotationSpeed * Time.deltaTime);
         }
 
-        /// <summary>
-        /// Checks if the FirePoint is aligned with the target within the specified tolerance.
-        /// </summary>
         public bool IsAligned(Vector3 targetPosition, float angleTolerance)
         {
-            // VLS always aligned if target exists (vertical launch doesn't need aim)
             if (IsVerticalLaunch) return true;
+            
+            // Option A+: Pivot-Centric Alignment Check
+            // We check if the GUN PIVOT is facing the target, ignoring the physical offset of the muzzle.
+            // This prevents "Parallax Error" where the gun is aimed correctly but the muzzle offset makes the angle > tolerance.
+            
+            Transform checkTransform = _elevationTransform; 
+            if (checkTransform == null) checkTransform = _firePoint; // Fallback
+            if (checkTransform == null) return true; // Should not happen if initialized
 
-            if (_firePoint == null) return false;
+            Vector3 directionToTarget = (targetPosition - checkTransform.position).normalized;
+            float angle = Vector3.Angle(checkTransform.forward, directionToTarget);
 
-            Vector3 directionToTarget = (targetPosition - _firePoint.position).normalized;
-            float angle = Vector3.Angle(_firePoint.forward, directionToTarget);
+            // Debug firing alignment (Optional, can be removed later)
+            // if (angle > angleTolerance && Time.frameCount % 60 == 0)
+            // {
+            //    Debug.Log($"[{gameObject.name}] Not Aligned: Angle {angle:F1}° > Tol {angleTolerance:F1}°");
+            // }
 
             return angle < angleTolerance;
         }

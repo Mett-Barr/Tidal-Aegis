@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using NavalCommand.Data;
 using NavalCommand.Core;
 using NavalCommand.Systems;
@@ -46,7 +47,15 @@ namespace NavalCommand.Entities.Components
             // Initialize Rotator
             if (_rotator != null && FirePoint != null)
             {
-                _rotator.Initialize(transform, FirePoint);
+                // Try to find Turret parts
+                Transform turretBase = transform.Find("TurretBase");
+                Transform turretGun = turretBase != null ? turretBase.Find("TurretGun") : null;
+
+                // Fallback for simple objects or VLS
+                if (turretBase == null) turretBase = transform;
+                if (turretGun == null) turretGun = transform;
+
+                _rotator.Initialize(turretBase, turretGun, FirePoint);
             }
 
             // Sync Team from Parent Unit if possible
@@ -99,6 +108,15 @@ namespace NavalCommand.Entities.Components
                 else
                 {
                     isFiring = false;
+                    // Debug Log for CIWS/Autocannon
+                    if (WeaponStats.Type == WeaponType.CIWS || WeaponStats.Type == WeaponType.Autocannon)
+                    {
+                        // Only log occasionally to avoid spam
+                        if (Time.frameCount % 60 == 0)
+                        {
+                            Debug.Log($"[{gameObject.name}] Aiming... Not Aligned. Target: {targetPos}");
+                        }
+                    }
                 }
             }
             else
@@ -227,6 +245,28 @@ namespace NavalCommand.Entities.Components
             }
         }
 
+        // Multi-Muzzle Support
+        private List<Transform> _muzzles = new List<Transform>();
+
+        private void InitializeMuzzles()
+        {
+            _muzzles.Clear();
+            
+            // 1. Add the primary FirePoint (used for aiming)
+            if (FirePoint != null) _muzzles.Add(FirePoint);
+
+            // 2. Find other FirePoints (e.g. FirePoint_L, FirePoint_R)
+            // We look recursively in case they are nested
+            var allTransforms = GetComponentsInChildren<Transform>();
+            foreach (var t in allTransforms)
+            {
+                if (t != FirePoint && t.name.Contains("FirePoint"))
+                {
+                    _muzzles.Add(t);
+                }
+            }
+        }
+
         public void Fire(IDamageable target)
         {
             if (WeaponStats == null || WeaponStats.ProjectilePrefab == null || PoolManager.Instance == null || WorldPhysicsSystem.Instance == null) 
@@ -234,8 +274,22 @@ namespace NavalCommand.Entities.Components
                 return;
             }
 
+            // Ensure muzzles are initialized
+            if (_muzzles.Count == 0) InitializeMuzzles();
+
+            // Fire from ALL muzzles
+            foreach (var muzzle in _muzzles)
+            {
+                FireSingleProjectile(muzzle, target);
+            }
+            
+            cooldownTimer = WeaponStats.Cooldown;
+        }
+
+        private void FireSingleProjectile(Transform muzzle, IDamageable target)
+        {
             // Calculate Spread
-            Quaternion fireRotation = FirePoint.rotation;
+            Quaternion fireRotation = muzzle.rotation;
             if (WeaponStats.Spread > 0.01f)
             {
                 float xSpread = Random.Range(-WeaponStats.Spread, WeaponStats.Spread);
@@ -244,22 +298,12 @@ namespace NavalCommand.Entities.Components
             }
 
             // Use PoolManager
-            GameObject projectileObj = PoolManager.Instance.Spawn(WeaponStats.ProjectilePrefab, FirePoint.position, fireRotation);
+            GameObject projectileObj = PoolManager.Instance.Spawn(WeaponStats.ProjectilePrefab, muzzle.position, fireRotation);
             
             // Spawn Muzzle Flash via VFXManager
             if (NavalCommand.Systems.VFX.VFXManager.Instance != null)
             {
-                Debug.Log($"[VFX_DEBUG] Weapon firing: Spawning muzzle flash at {FirePoint.position}");
-                var flash = NavalCommand.Systems.VFX.VFXManager.Instance.SpawnMuzzleFlashVFX(FirePoint.position, FirePoint.rotation);
-                
-                if (flash == null)
-                {
-                    Debug.LogError("[VFX_DEBUG] ERROR: Failed to spawn muzzle flash!");
-                }
-            }
-            else
-            {
-                Debug.LogError("[VFX_DEBUG] ERROR: VFXManager.Instance is null!");
+                NavalCommand.Systems.VFX.VFXManager.Instance.SpawnMuzzleFlashVFX(muzzle.position, muzzle.rotation);
             }
             
             if (projectileObj == null) return;
@@ -277,19 +321,13 @@ namespace NavalCommand.Entities.Components
                 float scaledRange = WorldPhysicsSystem.Instance.GetScaledRange(WeaponStats.Range);
                 
                 // Calculate Ballistic Gravity
-        float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
-        
-        // Apply Multiplier
-        if (WeaponStats.GravityMultiplier < 0.01f)
-        {
-            gravityY = 0f;
-        }
-        else
-        {
-            gravityY *= WeaponStats.GravityMultiplier;
-        }
+                float gravityY = -WorldPhysicsSystem.Instance.GetBallisticGravity(scaledSpeed, scaledRange);
+                
+                // Apply Multiplier
+                if (WeaponStats.GravityMultiplier < 0.01f) gravityY = 0f;
+                else gravityY *= WeaponStats.GravityMultiplier;
 
-        Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
+                Vector3 initialVelocity = fireRotation * Vector3.forward * scaledSpeed;
 
                 projectile.Owner = ownerObj;
                 projectile.Target = ((MonoBehaviour)target).transform;
@@ -300,8 +338,6 @@ namespace NavalCommand.Entities.Components
                 // Initialize with Velocity, Type, AND Custom Gravity
                 projectile.Initialize(initialVelocity, OwnerTeam, WeaponStats.Type, gravityY);
             }
-            
-            cooldownTimer = WeaponStats.Cooldown;
         }
     }
 }
