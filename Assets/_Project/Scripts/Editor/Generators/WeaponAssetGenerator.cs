@@ -54,6 +54,7 @@ namespace NavalCommand.Editor.Generators
             // Direct Mapping from Config (No logic!)
             so.SetBaseGravityMultiplier(config.GravityMultiplier);
             so.SetBaseRotationSpeed(config.RotationSpeed);
+            so.SetBaseRotationAcceleration(config.RotationAcceleration);
             so.SetBaseSpread(config.Spread);
             so.SetBaseFiringAngleTolerance(config.FiringAngleTolerance);
             

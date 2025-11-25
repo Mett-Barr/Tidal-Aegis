@@ -36,6 +36,9 @@ MonoBehaviour:
   _baseRotationSpeed: 45
   _overrideRotationSpeed: 0
   _useOverrideRotationSpeed: 0
+  _baseRotationAcceleration: 0
+  _overrideRotationAcceleration: 0
+  _useOverrideRotationAcceleration: 0
   _baseSpread: 0
   _overrideSpread: 0
   _useOverrideSpread: 0

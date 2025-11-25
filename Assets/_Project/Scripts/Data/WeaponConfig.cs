@@ -17,6 +17,7 @@ namespace NavalCommand.Data
         public float Damage;
         public float ProjectileSpeed;
         public float RotationSpeed;
+        public float RotationAcceleration; // New: deg/s^2
         public float Spread;
 
         // Projectile Visuals & Behavior
@@ -36,7 +37,7 @@ namespace NavalCommand.Data
         public float GravityMultiplier = 1.0f; // Default 1.0 for Ballistic/Linear
         public bool CanRotate = true;          // Default true (Turrets)
         public bool IsVLS = false;             // Default false
-        public float FiringAngleTolerance = 5f; // Default 5 degrees
+        public float FiringAngleTolerance = 1.0f; // Default 1.0 degree (Tighter standard)
 
         public WeaponConfig(string id, string displayName, WeaponType type, TargetCapability targetType)
         {

@@ -56,6 +56,10 @@ namespace NavalCommand.Entities.Components
                 if (turretGun == null) turretGun = transform;
 
                 _rotator.Initialize(turretBase, turretGun, FirePoint);
+                if (WeaponStats != null)
+                {
+                    _rotator.RotationAcceleration = WeaponStats.RotationAcceleration;
+                }
             }
 
             // Sync Team from Parent Unit if possible
@@ -89,9 +93,9 @@ namespace NavalCommand.Entities.Components
                 // The Rotator component knows if it can rotate or not (e.g. VLS vs Turret)
                 float rotSpeed = WeaponStats.RotationSpeed;
                 
-                // Legacy fallback: If stats are default (30), boost them for CIWS
-                if (WeaponStats.Type == WeaponType.CIWS && rotSpeed < 100f) rotSpeed = 600f;
-                else if (rotSpeed < 50f) rotSpeed = 300f;
+                // REMOVED Legacy fallback: It was overriding our tuned values (e.g. 15 -> 300)
+                // if (WeaponStats.Type == WeaponType.CIWS && rotSpeed < 100f) rotSpeed = 600f;
+                // else if (rotSpeed < 50f) rotSpeed = 300f;
 
                 Vector3 targetPos = FirePoint.position + desiredAimVector.Value;
                 _rotator.AimAt(targetPos, rotSpeed);
@@ -184,7 +188,7 @@ namespace NavalCommand.Entities.Components
 
             // Resolve Ammo's Strategy (Higher-Order Function)
             var aimingLogic = NavalCommand.Systems.Aiming.AimingFunctions.Resolve(WeaponStats.AimingLogicName);
-            Vector3? idealVector = aimingLogic(myPos, WeaponStats, currentTarget, predictor);
+            Vector3? idealVector = aimingLogic(myPos, FirePoint.forward, WeaponStats, currentTarget, predictor);
 
             if (!idealVector.HasValue) return null;
 

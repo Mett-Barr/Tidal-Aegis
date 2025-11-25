@@ -33,18 +33,21 @@ MonoBehaviour:
   _baseGravityMultiplier: 1
   _overrideGravityMultiplier: 0
   _useOverrideGravityMultiplier: 0
-  _baseRotationSpeed: 30
+  _baseRotationSpeed: 15
   _overrideRotationSpeed: 0
   _useOverrideRotationSpeed: 0
-  _baseSpread: 0.1
+  _baseRotationAcceleration: 0
+  _overrideRotationAcceleration: 0
+  _useOverrideRotationAcceleration: 0
+  _baseSpread: 0.4
   _overrideSpread: 0
   _useOverrideSpread: 0
-  _baseFiringAngleTolerance: 5
+  _baseFiringAngleTolerance: 1
   _overrideFiringAngleTolerance: 0
   _useOverrideFiringAngleTolerance: 0
   _baseCanRotate: 1
   _baseIsVLS: 0
-  _baseAimingLogicName: Ballistic
+  _baseAimingLogicName: AdvancedPredictive
   ProjectilePrefab: {fileID: 6116936751297627553, guid: ac9dcf0a023c1544ab7eaaff17903808,
     type: 3}
   MuzzleFlashPrefab: {fileID: 5798183988995756209, guid: 1dbaa26bc2fdb4fa98fa945780eaad7f,

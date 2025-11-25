@@ -51,7 +51,7 @@ namespace NavalCommand.Systems.Movement
 
             // Split Turn Rates (Scaled)
             float cruiseTurnRate = 300f * scaleFactor; // Very Agile in Cruise
-            float terminalTurnRate = 120f * scaleFactor; // Sharper Terminal Homing
+            float terminalTurnRate = 240f * scaleFactor; // Increased from 120: Faster terminal dive (90° in 0.375s)
             float currentTurnRate = cruiseTurnRate; // Default to cruise
             
             // float navConstant = 3f; // Unused in Predictive Pursuit
@@ -83,14 +83,15 @@ namespace NavalCommand.Systems.Movement
                 }
             }
             
-            if (phase == 1) // Cruise
+            if (phase == 1) // Cruise - TRUE HORIZONTAL FLIGHT
             {
                 currentTurnRate = cruiseTurnRate; // Use Agile Turn Rate
 
-                // Maintain Cruise Height
-                float heightError = cruiseHeight - currentPos.y;
+                // CRITICAL: Lock pitch to horizontal (y = 0)
+                // Do NOT adjust altitude during cruise - fly perfectly level
                 Vector3 cruiseDir = forward;
-                cruiseDir.y = Mathf.Clamp(heightError * 0.5f, -0.5f, 0.5f); 
+                cruiseDir.y = 0f; // Force horizontal
+                cruiseDir.Normalize();
                 
                 if (ctx.TargetState.HasValue)
                 {
@@ -107,29 +108,32 @@ namespace NavalCommand.Systems.Movement
                         }
                     }
 
-                    Vector3 dirToTarget = (targetPos - currentPos).normalized;
-                    float distToTarget = Vector3.Distance(currentPos, targetPos);
+                    // Calculate direction to target (XZ plane only)
+                    Vector3 dirToTarget = targetPos - currentPos;
+                    dirToTarget.y = 0f; // Ignore vertical component
+                    dirToTarget.Normalize();
                     
-                    // Transition to Terminal if close OR if angle is steep (diving)
-                    // This prevents flying over the target while trying to maintain cruise height
-                    float angleToTarget = Vector3.Angle(forward, dirToTarget);
+                    // Use HORIZONTAL distance for terminal transition
+                    // This prevents altitude difference from affecting the decision
+                    Vector3 currentPosXZ = new Vector3(currentPos.x, 0, currentPos.z);
+                    Vector3 targetPosXZ = new Vector3(targetPos.x, 0, targetPos.z);
+                    float horizontalDist = Vector3.Distance(currentPosXZ, targetPosXZ);
                     
-                    if (distToTarget < terminalDist || (distToTarget < terminalDist * 2f && angleToTarget > 45f))
+                    // Transition to Terminal when horizontally close
+                    if (horizontalDist < terminalDist)
                     {
-                        phase = 2; // Switch to Terminal
+                        phase = 2; // Switch to Terminal Dive
                     }
                     else
                     {
-                        cruiseDir.x = dirToTarget.x;
-                        cruiseDir.z = dirToTarget.z;
-                        cruiseDir = cruiseDir.normalized;
-                        desiredDir = cruiseDir;
+                        // Cruise: Navigate in XZ plane only, maintain horizontal flight
+                        desiredDir = dirToTarget;
                     }
                 }
                 else
                 {
-                    desiredDir.y = 0;
-                    desiredDir.Normalize();
+                    // No target: maintain current horizontal heading
+                    desiredDir = cruiseDir;
                 }
             }
 

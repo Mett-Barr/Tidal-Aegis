@@ -27,7 +27,13 @@
 - 武器资源生成
 - 弹道系统
 - 炮塔控制架构 (2-Axis)
+- 高级预判瞄準 (Advanced Predictive Aiming)
 - VFX集成
+
+### [飞弹系统](Documentation/MISSILE_SYSTEM.md)
+- 三段式飞行路径 (VLS → Cruise → Top-Attack)
+- 水平巡航设计
+- 终端距离计算
 
 ---
 
@@ -51,7 +57,8 @@ Tidal-Aegis/
 └── Documentation/               # 📖 架构文档（本目录）
     ├── EDITOR_TOOLS.md          # 编辑器工具系统
     ├── VFX_SYSTEM.md            # VFX系统
-    └── WEAPON_SYSTEM.md         # 武器系统
+    ├── WEAPON_SYSTEM.md         # 武器系统
+    └── MISSILE_SYSTEM.md        # 飞弹系统
 ```
 
 ---
@@ -94,6 +101,9 @@ Tidal-Aegis/
 
 ### 武器/弹药问题
 → 参考 [武器系统](Documentation/WEAPON_SYSTEM.md)
+
+### 导弹飞行路径问题
+→ 参考 [飞弹系统](Documentation/MISSILE_SYSTEM.md)
 
 ---
 

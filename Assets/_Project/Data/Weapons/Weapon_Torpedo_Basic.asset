@@ -36,10 +36,13 @@ MonoBehaviour:
   _baseRotationSpeed: 30
   _overrideRotationSpeed: 0
   _useOverrideRotationSpeed: 0
+  _baseRotationAcceleration: 0
+  _overrideRotationAcceleration: 0
+  _useOverrideRotationAcceleration: 0
   _baseSpread: 0
   _overrideSpread: 0
   _useOverrideSpread: 0
-  _baseFiringAngleTolerance: 5
+  _baseFiringAngleTolerance: 1
   _overrideFiringAngleTolerance: 0
   _useOverrideFiringAngleTolerance: 0
   _baseCanRotate: 1

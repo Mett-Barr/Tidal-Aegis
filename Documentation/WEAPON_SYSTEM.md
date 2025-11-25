@@ -49,14 +49,6 @@
     - `MaxPitch`: 60°
 
 ## 3. 资源生成 (Asset Generation)
-`ShipAssetGenerator` 和 `ShipBuilder` 已更新以符合上述标准：
-- 自动生成包含 `TurretBase` -> `TurretGun` -> `FirePoint` 的层级。
-- 自动修正 CIWS 的 Pivot 高度以消除视差。
-- 递归搜索 `FirePoint` 以支持复杂模型结构。
-
-## 4. 常见武器类型配置
-
-## 3. 资源生成 (Asset Generation)
 
 所有武器资源通过 `WeaponAssetGenerator` 和 `ShipBuilder` 自动生成。
 
@@ -68,10 +60,35 @@
 
 | 类型 | 旋转逻辑 | 备注 |
 |------|----------|------|
-| **FlagshipGun** | 2-Axis | 标准主炮 |
-| **CIWS** | 2-Axis | 高射速，独立俯仰 |
+| **FlagshipGun** | 2-Axis | 标准主炮，厚重手感 (15°/s) |
+| **CIWS** | 2-Axis | 高射速，独立俯仰，极速 (120°/s) |
+| **Autocannon** | 2-Axis | 灵敏手感 (80°/s) |
 | **Missile (VLS)** | None | 垂直发射，不需要旋转 |
 | **Torpedo** | 1-Axis | 通常只有水平旋转 |
+
+## 5. 高级预判瞄準系统 (Advanced Aiming System)
+
+為了最大化對移動目標的命中率，系統引入了 **Advanced Predictive Aiming** 算法。
+
+### 5.1 核心算法：二階攔截 (Iterative Intercept)
+不同於簡單的線性前置量 (Linear Lead)，本系統同時計算 **飛行時間 ($T_{flight}$)** 與 **炮塔旋轉時間 ($T_{turn}$)**。
+
+1.  **初始猜測**: $T_{total} = T_{flight}$ (對準當前目標位置)。
+2.  **迭代求解** (4次):
+    - 預測目標在 $T_{total}$ 後的位置。
+    - 計算炮塔轉到該角度所需時間 $T_{turn}$。
+    - 計算彈丸飛到該距離所需時間 $T_{flight}$。
+    - 更新 $T_{total} = T_{turn} + T_{flight}$。
+3.  **結果**: 炮塔會直接轉向目標的**未來位置**，消除旋轉滯後。
+
+### 5.2 雙精度彈道 (Double Precision Ballistics)
+針對高初速武器 (如 CIWS, $V=1100m/s$)，採用 **`double` 精度** 進行彈道解算。
+- **問題**: 在 `float` 精度下，高初速導致 $V^4$ 極大 ($10^{12}$)，與重力項相減時產生截斷誤差，導致仰角計算為 0。
+- **解決**: 使用 `double` 進行中間計算，確保即使在 2.5km 極限射程下也能精確計算出微小的仰角 (Ballistic Arc)。
+
+### 5.3 配置標準
+- **GravityMultiplier**: 統一為 **1.0** (物理真實)。
+- **RotationAcceleration**: 暫時禁用 (使用線性旋轉以保證最高精度)。
 
 ---
 *最后更新: 2025-11-26*

@@ -14,14 +14,15 @@ namespace NavalCommand.Data
             Cooldown = 3f,
             Damage = 30f,
             ProjectileSpeed = 762f,
-            RotationSpeed = 30f,
-            Spread = 0.1f,
+            RotationSpeed = 15f, // "Game Feel" Heavy
+            Spread = 0.4f, // ~0.4-0.6 degrees for large caliber
+            FiringAngleTolerance = 1.0f, // Relaxed from 0.5 to allow SmoothDamp settling
             
             ProjectileName = "Projectile_FlagshipGun",
             ProjectileColor = Color.yellow,
             ProjectileStyle = "Shell",
             MovementLogicName = "Ballistic",
-            AimingLogicName = "Ballistic",
+            AimingLogicName = "AdvancedPredictive",
             ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Large)
         };
 
@@ -39,7 +40,7 @@ namespace NavalCommand.Data
             ProjectileStyle = "Missile",
             MovementLogicName = "GuidedMissile",
             CruiseHeight = 15f,
-            TerminalHomingDistance = 50f,
+            TerminalHomingDistance = 150f, // Optimized for short-range testing: 150m cruise + 150m terminal (90° @ 240°/s = 0.375s × 290m/s = 109m)
             VerticalLaunchHeight = 20f,
             TurnRate = 15f,
             ImpactProfile = new ImpactProfile(ImpactCategory.Explosive, ImpactSize.Massive),
@@ -84,15 +85,19 @@ namespace NavalCommand.Data
             Cooldown = 0.2f,
             Damage = 5f,
             ProjectileSpeed = 1100f,
-            RotationSpeed = 120f,
-            Spread = 0.8f,
+            RotationSpeed = 80f, // "Game Feel" Snappy
+            Spread = 0.3f, // ~0.3 degrees
+            FiringAngleTolerance = 1.0f, // Relaxed from 0.5
 
             ProjectileName = "Projectile_Autocannon",
             ProjectileColor = new Color(1f, 0.5f, 0f),
             ProjectileStyle = "Tracer",
             MovementLogicName = "Ballistic",
-            AimingLogicName = "Ballistic",
+            AimingLogicName = "AdvancedPredictive",
             ImpactProfile = new ImpactProfile(ImpactCategory.Kinetic, ImpactSize.Small)
+            
+            // Platform Settings
+            // GravityMultiplier default is 1.0
         };
 
         public static readonly WeaponConfig CIWS = new WeaponConfig("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, TargetCapability.Aircraft | TargetCapability.Missile)
@@ -101,8 +106,8 @@ namespace NavalCommand.Data
             Cooldown = 0.004f, // 15000 RPM
             Damage = 2f,
             ProjectileSpeed = 1100f,
-            RotationSpeed = 115f,
-            Spread = 0.3f,
+            RotationSpeed = 120f, // "Game Feel" Fast
+            Spread = 0.1f, // ~0.1 degrees (Tight)
 
             ProjectileName = "Projectile_CIWS",
             ProjectileColor = new Color(0.85f, 0.65f, 0.35f), // Brass/Copper tracer color
@@ -112,8 +117,8 @@ namespace NavalCommand.Data
             
             // Platform Settings
             GravityMultiplier = 1f, // Explicitly set
-            FiringAngleTolerance = 2f, // Precise
-            AimingLogicName = "Ballistic"
+            FiringAngleTolerance = 3.0f, // Relaxed significantly for fast movers (was 0.1)
+            AimingLogicName = "AdvancedPredictive"
         };
 
         static WeaponRegistry()

@@ -89,6 +89,15 @@ namespace NavalCommand.Data
         public void SetBaseRotationSpeed(float val) => _baseRotationSpeed = val;
 
         // ---------------------------------------------------------------------
+        // Rotation Acceleration
+        // ---------------------------------------------------------------------
+        [SerializeField] private float _baseRotationAcceleration = 1000f; // Default high for instant
+        [SerializeField] private float _overrideRotationAcceleration;
+        [SerializeField] private bool _useOverrideRotationAcceleration;
+        public float RotationAcceleration => _useOverrideRotationAcceleration ? _overrideRotationAcceleration : _baseRotationAcceleration;
+        public void SetBaseRotationAcceleration(float val) => _baseRotationAcceleration = val;
+
+        // ---------------------------------------------------------------------
         // Spread
         // ---------------------------------------------------------------------
         [SerializeField] private float _baseSpread = 0f;

@@ -19,6 +19,11 @@ namespace NavalCommand.Entities.Components
         public bool CanRotate = true;
         public bool IsVerticalLaunch = false;
 
+        [Header("Runtime State")]
+        private float _currentYawVelocity;
+        private float _currentPitchVelocity;
+        public float RotationAcceleration = 1000f; // Default if not set
+
         public void Initialize(Transform azimuth, Transform elevation, Transform firePoint)
         {
             _azimuthTransform = azimuth;
@@ -30,30 +35,34 @@ namespace NavalCommand.Entities.Components
         {
             if (!CanRotate || _azimuthTransform == null || _elevationTransform == null) return;
 
-            Vector3 targetDir = targetPosition - _azimuthTransform.position;
-            
+            // ---------------------------------------------------------
             // 1. Azimuth (Yaw) - Rotate Base around Y axis
+            // ---------------------------------------------------------
+            Vector3 targetDir = targetPosition - _azimuthTransform.position;
             Vector3 targetDirFlattened = new Vector3(targetDir.x, 0, targetDir.z);
+            
             if (targetDirFlattened.sqrMagnitude > 0.001f)
             {
                 Quaternion targetYaw = Quaternion.LookRotation(targetDirFlattened);
+                // REVERT: Back to Linear Rotation for precision
                 _azimuthTransform.rotation = Quaternion.RotateTowards(_azimuthTransform.rotation, targetYaw, rotationSpeed * Time.deltaTime);
             }
 
+            // ---------------------------------------------------------
             // 2. Elevation (Pitch) - Rotate Gun around X axis (Local)
-            // Calculate target direction relative to the GUN's position, but in the BASE's local space
-            // This accounts for the height offset of the gun from the base
+            // ---------------------------------------------------------
             Vector3 targetVector = targetPosition - _elevationTransform.position;
             Vector3 localTargetVector = _azimuthTransform.InverseTransformDirection(targetVector);
 
             float flatDistance = Mathf.Sqrt(localTargetVector.x * localTargetVector.x + localTargetVector.z * localTargetVector.z);
-            float angle = Mathf.Atan2(localTargetVector.y, flatDistance) * Mathf.Rad2Deg;
+            float targetPitchAngle = Mathf.Atan2(localTargetVector.y, flatDistance) * Mathf.Rad2Deg;
             
-            // Clamp pitch
-            angle = Mathf.Clamp(-angle, -MaxPitch, -MinPitch); // Note: Negative angle because X-axis rotation is inverted for look up
-
-            Quaternion targetPitch = Quaternion.Euler(angle, 0, 0);
-            _elevationTransform.localRotation = Quaternion.RotateTowards(_elevationTransform.localRotation, targetPitch, rotationSpeed * Time.deltaTime);
+            // Clamp pitch (Note: Negative because X-axis is inverted)
+            targetPitchAngle = Mathf.Clamp(-targetPitchAngle, -MaxPitch, -MinPitch);
+            
+            Quaternion targetPitchRot = Quaternion.Euler(targetPitchAngle, 0, 0);
+            // REVERT: Back to Linear Rotation for precision
+            _elevationTransform.localRotation = Quaternion.RotateTowards(_elevationTransform.localRotation, targetPitchRot, rotationSpeed * Time.deltaTime);
         }
 
         public bool IsAligned(Vector3 targetPosition, float angleTolerance)
