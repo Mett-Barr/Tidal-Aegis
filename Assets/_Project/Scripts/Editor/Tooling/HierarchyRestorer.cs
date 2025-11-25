@@ -125,7 +125,6 @@ namespace NavalCommand.Editor.Tooling
             string[] enemyNames = new string[]
             {
                 "Ship_Kamikaze",
-                "Ship_Light_FlagshipGun",
                 "Ship_Light_Missile",
                 "Ship_Light_Torpedo",
                 "Ship_Light_Autocannon",

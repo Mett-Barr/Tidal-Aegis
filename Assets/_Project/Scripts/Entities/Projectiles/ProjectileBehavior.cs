@@ -62,6 +62,8 @@ namespace NavalCommand.Entities.Projectiles
         public Vector3 Acceleration => _currentState.Acceleration; // Expose for Prediction
         public Vector3 Velocity => _currentState.Velocity; // Expose for Prediction
 
+        private ProjectileVFXController _vfxController;
+
         private void Awake()
         {
             rb = GetComponent<Rigidbody>();
@@ -74,7 +76,13 @@ namespace NavalCommand.Entities.Projectiles
             
             var col = GetComponent<Collider>();
             if (col != null) col.isTrigger = true; 
+
+            _vfxController = GetComponent<ProjectileVFXController>();
         }
+
+        // ... (Start/OnEnable/OnDisable unchanged) ...
+
+
 
         private void Start()
         {
@@ -382,6 +390,8 @@ namespace NavalCommand.Entities.Projectiles
                 Destroy(gameObject);
             }
         }
+
+
 
         // IPredictionProvider Implementation
         public ITargetPredictor GetPredictor(Vector3 observerPos, Vector3 observerVel)

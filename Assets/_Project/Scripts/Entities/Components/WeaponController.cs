@@ -246,6 +246,24 @@ namespace NavalCommand.Entities.Components
             // Use PoolManager
             GameObject projectileObj = PoolManager.Instance.Spawn(WeaponStats.ProjectilePrefab, FirePoint.position, fireRotation);
             
+            // Spawn Muzzle Flash
+            if (WeaponStats.MuzzleFlashPrefab != null)
+            {
+                // Muzzle Flash is usually short-lived, so we can Instantiate or Pool.
+                // Since it has auto-destroy (StopAction), Instantiate is fine for now, 
+                // but Pooling is better for performance.
+                // Let's use PoolManager if possible, but PoolManager needs to handle "Auto Recycle".
+                // Our PoolManager doesn't seem to have auto-recycle based on PS stop.
+                // So we'll Instantiate for now to ensure correctness, or use PoolManager.Spawn 
+                // and rely on a separate script to Despawn it?
+                // The generated prefab has `stopAction = Destroy`. This is bad for Pooling.
+                // But for now, let's just Instantiate to get the visual working.
+                // Optimization: Add a "VFXAutoDespawn" script later.
+                
+                GameObject flash = Instantiate(WeaponStats.MuzzleFlashPrefab, FirePoint.position, FirePoint.rotation);
+                flash.transform.SetParent(FirePoint); // Attach to barrel
+            }
+            
             if (projectileObj == null) return;
 
             ProjectileBehavior projectile = projectileObj.GetComponent<ProjectileBehavior>();

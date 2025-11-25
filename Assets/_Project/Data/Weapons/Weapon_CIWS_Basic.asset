@@ -47,6 +47,8 @@ MonoBehaviour:
   _baseAimingLogicName: Ballistic
   ProjectilePrefab: {fileID: 5382165903713336999, guid: 53a5e88dc65ed264398d26f2db714d92,
     type: 3}
+  MuzzleFlashPrefab: {fileID: 5838305459241036269, guid: cbda95106445a4c4c955796a7bfb68a5,
+    type: 3}
   TargetMask:
     serializedVersion: 2
     m_Bits: 4294967295

@@ -123,6 +123,7 @@ namespace NavalCommand.Data
 
         [Header("Visuals & Physics")]
         public GameObject ProjectilePrefab;
+        public GameObject MuzzleFlashPrefab; // New field for Muzzle Flash
         public LayerMask TargetMask;
 
         // Editor Helper to validate/reset overrides if needed

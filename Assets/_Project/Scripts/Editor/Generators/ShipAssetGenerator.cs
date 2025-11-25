@@ -22,7 +22,6 @@ namespace NavalCommand.Editor.Generators
             try
             {
                 // Define Ships to Generate
-                CreateModularShip(builder, "Ship_Light_FlagshipGun", "Weapon_FlagshipGun_Basic", WeaponType.FlagshipGun, hullMat);
                 CreateModularShip(builder, "Ship_Light_Missile", "Weapon_Missile_Basic", WeaponType.Missile, hullMat);
                 CreateModularShip(builder, "Ship_Light_Torpedo", "Weapon_Torpedo_Basic", WeaponType.Torpedo, hullMat);
                 CreateModularShip(builder, "Ship_Light_Autocannon", "Weapon_Autocannon_Basic", WeaponType.Autocannon, hullMat);
