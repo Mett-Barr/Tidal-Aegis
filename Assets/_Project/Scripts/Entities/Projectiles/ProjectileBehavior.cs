@@ -14,8 +14,9 @@ namespace NavalCommand.Entities.Projectiles
         public WeaponType SourceWeaponType;
         
         [Header("Health - Phase 1: Simple HP")]
-        public float MaxHP = 5f;  // NEW: Projectile durability (configurable)
+        public float MaxHP = 3f;  // Missiles: 3 HP (CIWS 2-shot kill, realistic burst fire)
         private float currentHP;   // NEW: Runtime health
+        public float CurrentHP => currentHP;  // DEBUG: Expose for diagnostic logging
         
         [Header("Movement Logic")]
         public string MovementLogicName; // Set by ContentGenerator/WeaponConfig

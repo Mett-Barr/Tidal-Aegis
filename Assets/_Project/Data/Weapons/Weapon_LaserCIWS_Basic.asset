@@ -25,7 +25,7 @@ MonoBehaviour:
   _baseCooldown: 0.1
   _overrideCooldown: 0
   _useOverrideCooldown: 0
-  _baseDamage: 2.5
+  _baseDamage: 1.5
   _overrideDamage: 0
   _useOverrideDamage: 0
   _baseProjectileSpeed: 0

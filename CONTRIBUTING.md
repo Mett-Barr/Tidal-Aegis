@@ -146,6 +146,33 @@ BallisticsComputer.SolveInterception(...);
 
 ---
 
+## Debug Logging Standards
+
+### 临时诊断日志规范
+
+**规则**:
+1. **单一Tag**: 同一诊断会话使用统一tag（如 `[DEBUG_VFX]`, `[DEBUG_WEAPON]`）
+2. **追踪文档**: 在 `/brain/DEBUG_LOGGING_CLEANUP.md` 记录所有临时log
+   - 位置（文件+方法）
+   - 用途
+   - 移除checklist
+3. **及时清理**: 问题解决后立即移除所有临时debug logs
+4. **永久Log**: 关键成功/错误log使用正式tag（如 `[LaserBeam]`, `[VFXManager]`）
+
+**示例**:
+```csharp
+// ✅ 正确：统一tag
+Debug.Log($"[DEBUG_VFX] Found rule for {impact}");
+Debug.Log($"[DEBUG_VFX] Spawning VFX at {position}");
+Debug.LogError($"[DEBUG_VFX] No prefab found!");
+
+// ❌ 错误：多种tag
+Debug.Log($"[VFXManager] Found rule");  // 不要混用
+Debug.Log($"[DEBUG] Spawning VFX");     // 不要混用
+```
+
+---
+
 ## 📚 文档维护规范（Meta Documentation）
 
 ### 文档体系架构

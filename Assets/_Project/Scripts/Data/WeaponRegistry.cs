@@ -109,7 +109,7 @@ namespace NavalCommand.Data
             Role = WeaponRole.PointDefense,  // NEW: Point defense role
             Range = 1500f,
             Cooldown = 0.004f, // 15000 RPM
-            Damage = 2f,
+            Damage = 5f,  // 5 HP/hit (1-shot kill on 3HP missiles, reliable last-line defense)
             ProjectileSpeed = 1100f,
             RotationSpeed = 120f, // "Game Feel" Fast
             Spread = 0.1f, // ~0.1 degrees (Tight)
@@ -144,7 +144,7 @@ namespace NavalCommand.Data
             
             // === PAYLOAD: Energy Damage (as DPS) ===
             ImpactProfile = new ImpactProfile(ImpactCategory.Energy, ImpactSize.Small),
-            Damage = 2.5f,                   // 2.5 DPS (Phase 1: HP-based damage, 5 HP / 2.5 DPS = 2s kill)
+            Damage = 1.5f,                   // 1.5 DPS (3 HP / 1.5 DPS = 2s kill, balanced with CIWS 2-shot)
             Cooldown = 0.1f,                 // Beam activation delay
             ProjectileColor = new Color(0f, 1f, 1f),  // Cyan beam
             

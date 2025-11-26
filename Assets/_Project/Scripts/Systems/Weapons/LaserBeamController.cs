@@ -121,56 +121,54 @@ namespace NavalCommand.Systems.Weapons
             Vector3 targetPos = targetComponent.transform.position;
             Vector3 direction = (targetPos - origin.position).normalized;
             
-            // Raycast to find exact hit point
-            if (Physics.Raycast(origin.position, direction, out RaycastHit hit, maxRange))
+            // CRITICAL FIX: Avoid Self-Hit & Ensure Target Hit
+            // Global Physics.Raycast(~0) was hitting the Laser Turret itself (Self-Hit).
+            // We must query the TARGET'S collider specifically.
+            
+            Collider targetCol = targetComponent.GetComponent<Collider>();
+            if (targetCol != null)
             {
-                return hit.point;
+                Ray ray = new Ray(origin.position, direction);
+                
+                // 1. Try direct Raycast on the specific collider (Ignores other objects, works on Triggers)
+                if (targetCol.Raycast(ray, out RaycastHit hit, maxRange))
+                {
+                    return hit.point;
+                }
+                
+                // 2. If Raycast fails (e.g. inside collider), use ClosestPoint
+                // This returns a point on the surface (or inside) closest to the laser origin.
+                return targetCol.ClosestPoint(origin.position);
             }
             
-            // No obstacle, point directly at target (clamped to range)
-            float distance = Mathf.Min(Vector3.Distance(origin.position, targetPos), maxRange);
-            return origin.position + direction * distance;
+            // Fallback to target center if no collider found
+            return targetPos;
         }
         
         private void ApplyDamage(float deltaTime)
         {
-            if (target == null)
-            {
-                Debug.LogWarning("[LaserBeam] ApplyDamage: target is NULL");
-                return;
-            }
+            if (target == null) return;
             
-            // If we already killed this target, stop attacking
-            if (hasKilledCurrentTarget)
-            {
-                return;  // Don't continue damaging/checking
-            }
+            if (hasKilledCurrentTarget) return;
+
+            // CRITICAL FIX: Calculate hit point BEFORE dealing damage.
+            // If TakeDamage kills the target, it might be Despawned/Deactivated immediately.
+            // Physics.Raycast will fail on an inactive collider, causing us to lose the surface hit point.
+            Vector3 potentialHitPoint = GetHitPoint();
             
-            // CRITICAL: Check BEFORE TakeDamage
             bool wasAlive = !target.IsDead();
-            
             float damage = dps * deltaTime;
             target.TakeDamage(damage);
-            
-            // Check after damage
             bool isDeadNow = target.IsDead();
             
-            // NEW: Frame-based VFX trigger (CIWS-style one-time event)
             if (wasAlive && isDeadNow && lastKillFrame != Time.frameCount)
             {
-                Debug.Log($"<color=green>[LaserBeam]</color> KILLING BLOW (Frame {Time.frameCount})! Spawning explosion VFX!");
-                SpawnExplosionVFX(GetHitPoint());
+                // Spawn explosion at the exact hit point (Surface)
+                // We use the pre-calculated point from when the target was still active
+                SpawnExplosionVFX(potentialHitPoint);
                 
-                lastKillFrame = Time.frameCount;     // Mark this frame
-                hasKilledCurrentTarget = true;        // Mark this target as killed
-                
-                // Immediately deactivate beam (like CIWS projectile despawning)
-                Deactivate();
-            }
-            else if (!wasAlive && lastKillFrame != Time.frameCount)
-            {
-                // Target was already dead when beam started - this should not happen
-                Debug.LogWarning($"<color=red>[LaserBeam]</color> Target already dead at beam start (Frame {Time.frameCount})");
+                lastKillFrame = Time.frameCount;
+                hasKilledCurrentTarget = true;
                 Deactivate();
             }
         }
@@ -180,33 +178,18 @@ namespace NavalCommand.Systems.Weapons
         /// </summary>
         private void SpawnExplosionVFX(Vector3 position)
         {
-            Debug.Log($"<color=cyan>[LaserBeam]</color> SpawnExplosionVFX called at {position}");
-            
-            if (NavalCommand.Systems.VFX.VFXManager.Instance == null)
-            {
-                Debug.LogError("<color=red>[LaserBeam]</color> VFXManager.Instance is NULL!");
-                return;
-            }
-            
-            Debug.Log($"<color=cyan>[LaserBeam]</color> VFXManager found, creating payload...");
-            
-            // Option A: Unified missile explosion - use SAME profile as CIWS (Kinetic, Small)
-            // This ensures all missile kills look the same regardless of weapon type
-            var impactProfile = new NavalCommand.Systems.VFX.ImpactProfile(
-                NavalCommand.Systems.VFX.ImpactCategory.Kinetic,  // Same as CIWS
-                NavalCommand.Systems.VFX.ImpactSize.Small
-            );
-            
+            if (NavalCommand.Systems.VFX.VFXManager.Instance == null) return;
+
+            // Use Explosive/Medium to ensure the explosion is clearly visible
+            // We use the surface position (from GetHitPoint) to ensure it's not obscured
             var payload = new NavalCommand.Systems.VFX.ImpactPayload(
-                impactProfile,
-                NavalCommand.Systems.VFX.SurfaceType.Air,  // Assume air target (missiles/aircraft)
+                new NavalCommand.Systems.VFX.ImpactProfile(NavalCommand.Systems.VFX.ImpactCategory.Explosive, NavalCommand.Systems.VFX.ImpactSize.Medium),
+                NavalCommand.Systems.VFX.SurfaceType.Armor_Metal, // Assume Metal for missiles
                 position,
-                Vector3.up
+                -transform.forward
             );
             
-            Debug.Log($"<color=cyan>[LaserBeam]</color> Calling VFXManager.SpawnVFX with Kinetic/Small profile");
             NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(payload);
-            Debug.Log($"<color=green>[LaserBeam]</color> VFX spawn call completed!");
         }
         
         public void Deactivate()

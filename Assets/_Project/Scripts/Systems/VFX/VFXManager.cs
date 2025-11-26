@@ -199,7 +199,11 @@ namespace NavalCommand.Systems.VFX
         /// </summary>
         public void SpawnVFX(ImpactPayload context)
         {
-            if (_library == null) return;
+            if (_library == null)
+            {
+                Debug.LogError("[DEBUG_VFX] SpawnVFX called but _library is NULL!");
+                return;
+            }
 
             VFXRule rule = _library.GetBestRule(context);
             
@@ -212,28 +216,37 @@ namespace NavalCommand.Systems.VFX
                 prefabToSpawn = rule.VFXPrefab;
                 clipToPlay = rule.SFXClip;
                 scale = rule.ScaleMultiplier;
+                Debug.Log($"[DEBUG_VFX] Found rule for {context.Impact.Category}/{context.Impact.Size}, prefab={prefabToSpawn?.name}");
             }
             else
             {
                 // Fallback
                 prefabToSpawn = _library.FallbackVFX;
                 clipToPlay = _library.FallbackSFX;
+                Debug.LogWarning($"[DEBUG_VFX] No rule found for {context.Impact.Category}/{context.Impact.Size}, using fallback");
             }
 
             // Spawn Visuals
             if (prefabToSpawn != null)
             {
+                Debug.Log($"[DEBUG_VFX] Spawning VFX: {prefabToSpawn.name} at {context.Position}");
                 if (PoolManager.Instance != null)
                 {
                     GameObject vfx = PoolManager.Instance.Spawn(prefabToSpawn, context.Position, Quaternion.LookRotation(context.Normal));
                     vfx.transform.localScale = Vector3.one * scale;
+                    Debug.Log($"[DEBUG_VFX] VFX spawned from pool: {vfx.name}, active={vfx.activeSelf}");
                 }
                 else
                 {
                     GameObject vfx = Instantiate(prefabToSpawn, context.Position, Quaternion.LookRotation(context.Normal));
                     vfx.transform.localScale = Vector3.one * scale;
                     Destroy(vfx, 5f); // Safety destroy if no pool
+                    Debug.Log($"[DEBUG_VFX] VFX instantiated (no pool): {vfx.name}");
                 }
+            }
+            else
+            {
+                Debug.LogError($"[DEBUG_VFX] No VFX prefab to spawn for {context.Impact.Category}/{context.Impact.Size}!");
             }
 
             // Play Audio
