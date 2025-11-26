@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Weapon_CIWS_Basic
   m_EditorClassIdentifier: 
   DisplayName: CIWS
-  Type: 4
+  Type: 2
+  Mode: 0
   TargetType: 6
   ImpactProfile:
     Category: 1
@@ -50,6 +51,7 @@ MonoBehaviour:
   _baseAimingLogicName: AdvancedPredictive
   ProjectilePrefab: {fileID: 5382165903713336999, guid: 53a5e88dc65ed264398d26f2db714d92,
     type: 3}
+  ProjectileColor: {r: 0.85, g: 0.65, b: 0.35, a: 1}
   MuzzleFlashPrefab: {fileID: 5838305459241036269, guid: cbda95106445a4c4c955796a7bfb68a5,
     type: 3}
   TargetMask:

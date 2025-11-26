@@ -10,6 +10,7 @@ namespace NavalCommand.VFX
         MissileTrail,    // Flame + Smoke for missiles
         TorpedoBubbles,  // Bubbles for torpedoes
         TracerGlow,      // Glow trail for tracers (Autocannon)
-        MuzzleFlash      // Yellow particle flash for weapon firing
+        MuzzleFlash,     // Yellow particle flash for weapon firing
+        MuzzleFlashLaser // NEW: Cyan laser muzzle flash
     }
 }

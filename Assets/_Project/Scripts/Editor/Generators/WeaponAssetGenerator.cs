@@ -44,6 +44,8 @@ namespace NavalCommand.Editor.Generators
 
             so.DisplayName = config.DisplayName;
             so.Type = config.Type;
+            so.Mode = config.Mode;  // NEW: Set firing mode
+            so.ProjectileColor = config.ProjectileColor;  // NEW: Set beam/projectile color
             so.TargetType = config.TargetType;
             so.SetBaseRange(config.Range);
             so.SetBaseCooldown(config.Cooldown);
@@ -63,8 +65,16 @@ namespace NavalCommand.Editor.Generators
             so.SetBaseIsVLS(config.IsVLS);
             so.SetBaseAimingLogicName(config.AimingLogicName);
 
-            string projPath = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
-            so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
+            // Projectile Prefab (only for Projectile mode)
+            if (config.Mode == FiringMode.Projectile)
+            {
+                string projPath = $"Assets/_Project/Prefabs/Projectiles/{config.ProjectileName}.prefab";
+                so.ProjectilePrefab = AssetDatabase.LoadAssetAtPath<GameObject>(projPath);
+            }
+            else
+            {
+                so.ProjectilePrefab = null;  // No projectile for beam weapons
+            }
             
             // MuzzleFlash now handled by VFXManager, no longer per-weapon
 
@@ -75,10 +85,13 @@ namespace NavalCommand.Editor.Generators
 
         private static void GenerateWeapon(WeaponConfig config)
         {
-            // 1. Generate Projectile Prefab
-            CreateProjectilePrefab(config);
+            // 1. Generate Projectile Prefab (only for Projectile mode)
+            if (config.Mode == FiringMode.Projectile)
+            {
+                CreateProjectilePrefab(config);
+            }
 
-            // 2. Generate WeaponStats SO (MuzzleFlash now handled by VFXManager)
+            // 2. Create WeaponStats SO
             CreateWeaponStats(config);
         }
 
@@ -133,8 +146,9 @@ namespace NavalCommand.Editor.Generators
             {
                 "Missile" => NavalCommand.VFX.VFXType.MissileTrail,
                 "Torpedo" => NavalCommand.VFX.VFXType.TorpedoBubbles,
-                "Tracer" => NavalCommand.VFX.VFXType.None,        // No VFX for Autocannon (visual feedback from tracer model)
-                "Tracer_Small" => NavalCommand.VFX.VFXType.None,  // No VFX for CIWS (high fire rate)
+                "Laser" => NavalCommand.VFX.VFXType.TracerGlow,      // NEW: Use TracerGlow for laser beam (cyan trail)
+                "Tracer" => NavalCommand.VFX.VFXType.None,           // No VFX for Autocannon (visual feedback from tracer model)
+                "Tracer_Small" => NavalCommand.VFX.VFXType.None,     // No VFX for CIWS (high fire rate)
                 _ => NavalCommand.VFX.VFXType.None // Shell have no VFX
             };
         }
@@ -147,7 +161,7 @@ namespace NavalCommand.Editor.Generators
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
             
-            if (style.Contains("Tracer"))
+            if (style.Contains("Tracer") || style == "Laser")  // UPDATED: Enable emission for Laser too
             {
                 mat.EnableKeyword("_EMISSION");
                 if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", color * 10f); // HDR Glow
@@ -218,6 +232,11 @@ namespace NavalCommand.Editor.Generators
                     // CIWS - Small, subtle tracers to avoid visual clutter from high fire rate
                     CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.08f, 0.6f, 0.08f), Vector3.zero, new Vector3(90, 0, 0), mat);
                     // No VFX for CIWS - the tracer bullets themselves provide visual feedback through high fire rate
+                    break;
+                case "Laser":  // NEW: Laser projectile (thin, glowing beam)
+                    // Very thin, elongated capsule for laser beam appearance
+                    CreatePrimitive(model, PrimitiveType.Capsule, new Vector3(0.05f, 2f, 0.05f), Vector3.zero, new Vector3(90, 0, 0), mat);
+                    // VFX handled by VFX_TracerGlow.prefab (cyan trail)
                     break;
             }
         }

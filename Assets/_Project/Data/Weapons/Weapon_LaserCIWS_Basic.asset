@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a55e93e3199ad7443882d42c000e42b1, type: 3}
+  m_Name: Weapon_LaserCIWS_Basic
+  m_EditorClassIdentifier: 
+  DisplayName: Laser CIWS
+  Type: 3
+  Mode: 1
+  TargetType: 6
+  ImpactProfile:
+    Category: 2
+    Size: 0
+  _baseRange: 2000
+  _overrideRange: 0
+  _useOverrideRange: 0
+  _baseCooldown: 0.1
+  _overrideCooldown: 0
+  _useOverrideCooldown: 0
+  _baseDamage: 50
+  _overrideDamage: 0
+  _useOverrideDamage: 0
+  _baseProjectileSpeed: 0
+  _overrideProjectileSpeed: 0
+  _useOverrideProjectileSpeed: 0
+  _baseGravityMultiplier: 1
+  _overrideGravityMultiplier: 0
+  _useOverrideGravityMultiplier: 0
+  _baseRotationSpeed: 150
+  _overrideRotationSpeed: 0
+  _useOverrideRotationSpeed: 0
+  _baseRotationAcceleration: 0
+  _overrideRotationAcceleration: 0
+  _useOverrideRotationAcceleration: 0
+  _baseSpread: 0
+  _overrideSpread: 0
+  _useOverrideSpread: 0
+  _baseFiringAngleTolerance: 2
+  _overrideFiringAngleTolerance: 0
+  _useOverrideFiringAngleTolerance: 0
+  _baseCanRotate: 1
+  _baseIsVLS: 0
+  _baseAimingLogicName: Direct
+  ProjectilePrefab: {fileID: 0}
+  ProjectileColor: {r: 0, g: 1, b: 1, a: 1}
+  MuzzleFlashPrefab: {fileID: 0}
+  TargetMask:
+    serializedVersion: 2
+    m_Bits: 4294967295

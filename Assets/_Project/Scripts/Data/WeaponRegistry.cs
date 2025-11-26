@@ -10,6 +10,7 @@ namespace NavalCommand.Data
 
         public static readonly WeaponConfig FlagshipGun = new WeaponConfig("Weapon_FlagshipGun_Basic", "Flagship Gun", WeaponType.FlagshipGun, TargetCapability.Ship)
         {
+            Role = WeaponRole.MainGun,   // NEW: Main battery role
             Range = 150000f,
             Cooldown = 3f,
             Damage = 30f,
@@ -28,6 +29,7 @@ namespace NavalCommand.Data
 
         public static readonly WeaponConfig Missile = new WeaponConfig("Weapon_Missile_Basic", "Missile Launcher", WeaponType.Missile, TargetCapability.Ship | TargetCapability.Aircraft)
         {
+            Role = WeaponRole.MissileLauncher,  // NEW: VLS launcher role
             Range = 120000f,
             Cooldown = 10f,
             Damage = 60f,
@@ -55,7 +57,8 @@ namespace NavalCommand.Data
 
         public static readonly WeaponConfig Torpedo = new WeaponConfig("Weapon_Torpedo_Basic", "Torpedo Tube", WeaponType.Torpedo, TargetCapability.Ship)
         {
-            Range = 10000f,
+            Role = WeaponRole.TorpedoLauncher,  // NEW: Torpedo launcher role
+            Range = 100000f,
             Cooldown = 12f,
             Damage = 100f,
             ProjectileSpeed = 28f,
@@ -81,6 +84,7 @@ namespace NavalCommand.Data
 
         public static readonly WeaponConfig Autocannon = new WeaponConfig("Weapon_Autocannon_Basic", "Autocannon", WeaponType.Autocannon, TargetCapability.Ship | TargetCapability.Aircraft)
         {
+            Role = WeaponRole.Secondary,  // NEW: Secondary battery role
             Range = 2500f,
             Cooldown = 0.2f,
             Damage = 5f,
@@ -102,6 +106,7 @@ namespace NavalCommand.Data
 
         public static readonly WeaponConfig CIWS = new WeaponConfig("Weapon_CIWS_Basic", "CIWS", WeaponType.CIWS, TargetCapability.Aircraft | TargetCapability.Missile)
         {
+            Role = WeaponRole.PointDefense,  // NEW: Point defense role
             Range = 1500f,
             Cooldown = 0.004f, // 15000 RPM
             Damage = 2f,
@@ -121,6 +126,40 @@ namespace NavalCommand.Data
             AimingLogicName = "AdvancedPredictive"
         };
 
+        // === LASER CIWS: Role-Kinematics-Payload Demonstration ===
+        public static readonly WeaponConfig LaserCIWS = new WeaponConfig(
+            "Weapon_LaserCIWS_Basic", 
+            "Laser CIWS", 
+            WeaponType.LaserCIWS, 
+            TargetCapability.Aircraft | TargetCapability.Missile
+        ) {
+            // === NEW: Beam Mode ===
+            Mode = FiringMode.Beam,  // Continuous beam, not projectile
+            
+            // === ROLE: Point Defense (Same as CIWS) ===
+            Role = WeaponRole.PointDefense,
+            Range = 2000f,                   // Beam max range
+            RotationSpeed = 150f,            // Fast tracking
+            FiringAngleTolerance = 2.0f,     // Can fire with slight misalignment
+            
+            // === PAYLOAD: Energy Damage (as DPS) ===
+            ImpactProfile = new ImpactProfile(ImpactCategory.Energy, ImpactSize.Small),
+            Damage = 50f,                    // 50 DPS (damage per second)
+            Cooldown = 0.1f,                 // Beam activation delay
+            ProjectileColor = new Color(0f, 1f, 1f),  // Cyan beam
+            
+            // === KINEMATICS: N/A for Beam ===
+            // MovementLogicName not used
+            // GravityMultiplier not used
+            // ProjectileSpeed not used
+            ProjectileName = "Beam_Laser",   // Placeholder
+            ProjectileStyle = "Laser",       // For future reference
+            
+            // === AIMING ===
+            AimingLogicName = "Direct",      // Direct aim (raycast)
+            CanRotate = true
+        };
+
         static WeaponRegistry()
         {
             AllWeapons.Add(FlagshipGun);
@@ -128,6 +167,7 @@ namespace NavalCommand.Data
             AllWeapons.Add(Torpedo);
             AllWeapons.Add(Autocannon);
             AllWeapons.Add(CIWS);
+            AllWeapons.Add(LaserCIWS);  // NEW
         }
     }
 }

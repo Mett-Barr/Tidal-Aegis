@@ -1,6 +1,6 @@
-# VFX 系统架构
+# VFX 系统架构 (VFX System Architecture)
 
-[← 返回主文档](../ARCHITECTURE.md)
+[← 返回技术文档](../TDD.md)
 
 ---
 

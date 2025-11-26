@@ -26,6 +26,7 @@ namespace NavalCommand.Entities.Components
         private float cooldownTimer;
         private Transform currentTarget;
         private bool isFiring;
+        private NavalCommand.Systems.Weapons.LaserBeamController activeBeam;  // NEW: For beam weapons
 
         private void Awake()
         {
@@ -273,7 +274,57 @@ namespace NavalCommand.Entities.Components
 
         public void Fire(IDamageable target)
         {
-            if (WeaponStats == null || WeaponStats.ProjectilePrefab == null || PoolManager.Instance == null || WorldPhysicsSystem.Instance == null) 
+            if (WeaponStats == null) return;
+            
+            // Branch based on firing mode
+            if (WeaponStats.Mode == FiringMode.Beam)
+            {
+                FireBeam(target);
+            }
+            else
+            {
+                FireProjectile(target);
+            }
+        }
+        
+        private void FireBeam(IDamageable target)
+        {
+            // Ensure LaserBeamPool exists
+            if (NavalCommand.Systems.Weapons.LaserBeamPool.Instance == null)
+            {
+                Debug.LogWarning("[WeaponController] LaserBeamPool not found! Cannot fire beam.");
+                return;
+            }
+            
+            // Ensure muzzles are initialized
+            if (_muzzles.Count == 0) InitializeMuzzles();
+            if (_muzzles.Count == 0) return;
+            
+            // Get first muzzle (beam weapons typically have single emitter)
+            Transform muzzle = _muzzles[0];
+            
+            // Get or reuse beam
+            if (activeBeam == null || !activeBeam.gameObject.activeSelf)
+            {
+                activeBeam = NavalCommand.Systems.Weapons.LaserBeamPool.Instance.GetBeam();
+            }
+            
+            // Initialize beam
+            activeBeam.Initialize(
+                muzzle,
+                target,
+                WeaponStats.Damage,  // DPS
+                WeaponStats.Range,
+                WeaponStats.ProjectileColor
+            );
+            
+            cooldownTimer = WeaponStats.Cooldown;  // Initial activation delay
+        }
+        
+        private void FireProjectile(IDamageable target)
+        {
+            // Projectile mode validation
+            if (WeaponStats.ProjectilePrefab == null || PoolManager.Instance == null || WorldPhysicsSystem.Instance == null) 
             {
                 return;
             }

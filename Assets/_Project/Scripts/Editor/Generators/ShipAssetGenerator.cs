@@ -27,6 +27,7 @@ namespace NavalCommand.Editor.Generators
                 CreateModularShip(builder, "Ship_Light_Torpedo", "Weapon_Torpedo_Basic", WeaponType.Torpedo, hullMat);
                 CreateModularShip(builder, "Ship_Light_Autocannon", "Weapon_Autocannon_Basic", WeaponType.Autocannon, hullMat);
                 CreateModularShip(builder, "Ship_Light_CIWS", "Weapon_CIWS_Basic", WeaponType.CIWS, hullMat);
+                CreateModularShip(builder, "Ship_Light_LaserCIWS", "Weapon_LaserCIWS_Basic", WeaponType.LaserCIWS, hullMat);  // NEW: Laser CIWS ship
                 
                 // Special Ships
                 CreateKamikazeShip(builder, hullMat);
@@ -138,6 +139,7 @@ namespace NavalCommand.Editor.Generators
             // Load Weapons
             WeaponStatsSO mainGun = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_FlagshipGun_Basic.asset");
             WeaponStatsSO ciws = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_CIWS_Basic.asset");
+            WeaponStatsSO laserCIWS = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_LaserCIWS_Basic.asset");  // NEW
             WeaponStatsSO auto = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_Autocannon_Basic.asset");
             WeaponStatsSO missile = AssetDatabase.LoadAssetAtPath<WeaponStatsSO>("Assets/_Project/Data/Weapons/Weapon_Missile_Basic.asset");
 
@@ -145,7 +147,8 @@ namespace NavalCommand.Editor.Generators
             // SuperHeavy has ~17 mounts.
             // 1, 2, 3: Centerline (Main Guns)
             // 4-13: Side Mounts (Autocannons/Secondary)
-            // 14-17: CIWS
+            // 14-15: Ballistic CIWS
+            // 16-17: Laser CIWS (NEW)
             
             Transform[] children = shipRoot.GetComponentsInChildren<Transform>();
             foreach (Transform child in children)
@@ -158,7 +161,11 @@ namespace NavalCommand.Editor.Generators
                     {
                         if (mainGun != null) AttachWeapon(builder, shipRoot, child, WeaponType.FlagshipGun, mainGun, hullMat);
                     }
-                    else if (index >= 14) // CIWS (Last 4)
+                    else if (index >= 16) // Laser CIWS (Last 2)
+                    {
+                        if (laserCIWS != null) AttachWeapon(builder, shipRoot, child, WeaponType.LaserCIWS, laserCIWS, hullMat);
+                    }
+                    else if (index >= 14) // Ballistic CIWS (14-15)
                     {
                         if (ciws != null) AttachWeapon(builder, shipRoot, child, WeaponType.CIWS, ciws, hullMat);
                     }

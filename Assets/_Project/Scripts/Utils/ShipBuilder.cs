@@ -261,6 +261,10 @@ namespace NavalCommand.Utils
                     CreateCIWSTurret(container, sharedMat);
                     break;
 
+                case WeaponType.LaserCIWS:
+                    CreateLaserCIWSTurret(container, sharedMat);
+                    break;
+
                 case WeaponType.Autocannon:
                     // Single Barrel Quick Firing
                     GameObject autoBase = CreatePrimitive(container, PrimitiveType.Cube, new Vector3(0.6f, 0.6f, 0.6f), new Vector3(0, 0.3f, 0));
@@ -356,6 +360,53 @@ namespace NavalCommand.Utils
             firePoint.transform.SetParent(turretGun.transform);
             firePoint.transform.localPosition = new Vector3(0, 0f, 2.5f); // Aligned with barrels
             firePoint.transform.localRotation = Quaternion.identity;
+        }
+
+        /// <summary>
+        /// Creates a compact sci-fi laser CIWS turret
+        /// Design: Small base + emitter housing + cyan lens (Role=PointDefense, Kinematics=Linear+Gravity0, Payload=Energy)
+        /// </summary>
+        private void CreateLaserCIWSTurret(GameObject container, Material sharedMat)
+        {
+            // 1. Turret Base (Yaw Pivot) - Compact Cylinder
+            GameObject laserBase = CreatePrimitive(
+                container,
+                PrimitiveType.Cylinder,
+                new Vector3(0.4f, 0.15f, 0.4f),  // Compact: 40cm diameter, 15cm tall
+                new Vector3(0, 0.075f, 0)        // Half-height positioning
+            );
+            laserBase.name = "TurretBase";
+            laserBase.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // 2. TurretGun (Pitch Pivot) - At Y=0 with base (Pivot-Centric)
+            GameObject laserGun = new GameObject("TurretGun");
+            laserGun.transform.SetParent(laserBase.transform);
+            laserGun.transform.localPosition = new Vector3(0, 0.075f, 0);  // Y=0 Axis-Aligned
+
+            // 3. Emitter Housing - Small Cube
+            GameObject housing = CreatePrimitive(
+                laserGun,
+                PrimitiveType.Cube,
+                new Vector3(0.3f, 0.3f, 0.4f),
+                new Vector3(0, 0, 0.2f)  // Slightly forward
+            );
+            housing.name = "EmitterHousing";
+            housing.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // 4. Emitter Lens - Small Sphere (Cyan glow placeholder)
+            GameObject lens = CreatePrimitive(
+                laserGun,
+                PrimitiveType.Sphere,
+                new Vector3(0.15f, 0.15f, 0.15f),
+                new Vector3(0, 0, 0.5f)  // At emitter tip
+            );
+            lens.name = "EmitterLens";
+            lens.GetComponent<Renderer>().sharedMaterial = sharedMat;
+
+            // 5. FirePoint - At barrel tip
+            GameObject fp = new GameObject("FirePoint");
+            fp.transform.SetParent(laserGun.transform);
+            fp.transform.localPosition = new Vector3(0, 0, 0.6f);  // Beyond lens
         }
 
         private Material GetOrSaveMaterial(string name, Color color)

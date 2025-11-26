@@ -1,6 +1,6 @@
-# 编辑器工具系统架构
+# 编辑器工具系统 (Editor Tools System)
 
-[← 返回主文档](../ARCHITECTURE.md)
+[← 返回技术文档](../TDD.md)
 
 ---
 

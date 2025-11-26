@@ -7,7 +7,9 @@ namespace NavalCommand.Data
     {
         public string ID;
         public string DisplayName;
-        public WeaponType Type;
+        public WeaponType Type;                  // Legacy (for serialization/lookup)
+        public WeaponRole Role;                  // NEW: Explicit tactical role
+        public FiringMode Mode = FiringMode.Projectile;  // NEW: Projectile vs Beam
         public TargetCapability TargetType;
         public NavalCommand.Systems.VFX.ImpactProfile ImpactProfile;
         

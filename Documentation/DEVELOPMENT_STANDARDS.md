@@ -1,6 +1,6 @@
-# 项目开发规范
+# 开发规范 (Development Standards)
 
-[← 返回主文档](../ARCHITECTURE.md)
+[← 返回技术文档](../TDD.md)
 
 ---
 

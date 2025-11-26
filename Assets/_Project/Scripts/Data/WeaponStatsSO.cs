@@ -5,10 +5,11 @@ namespace NavalCommand.Data
     public enum WeaponType
     {
         FlagshipGun,
-        Missile,
-        Torpedo,
         Autocannon,
-        CIWS
+        CIWS,
+        LaserCIWS,  // NEW: Laser-based point defense (Role=PointDefense, Kinematics=Linear+Gravity0, Payload=Energy)
+        Missile,
+        Torpedo
     }
 
     [System.Flags]
@@ -29,8 +30,9 @@ namespace NavalCommand.Data
         [Tooltip("The name shown in UI [Traditional Chinese]")]
         public string DisplayName;
 
-        [Header("Combat Stats")]
+        [Header("Basic")]
         public WeaponType Type;
+        public FiringMode Mode = FiringMode.Projectile;  // NEW: Projectile vs Beam
         public TargetCapability TargetType = TargetCapability.Ship;
         public NavalCommand.Systems.VFX.ImpactProfile ImpactProfile;
 
@@ -130,8 +132,9 @@ namespace NavalCommand.Data
         public string AimingLogicName => _baseAimingLogicName;
         public void SetBaseAimingLogicName(string val) => _baseAimingLogicName = val;
 
-        [Header("Visuals & Physics")]
+        [Header("Projectile")]
         public GameObject ProjectilePrefab;
+        public Color ProjectileColor = Color.white;  // NEW: For beam weapons and projectile tinting
         public GameObject MuzzleFlashPrefab; // New field for Muzzle Flash
         public LayerMask TargetMask;
 

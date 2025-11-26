@@ -19,6 +19,9 @@ namespace NavalCommand.Editor.Generators
             // 2. Muzzle Flash
             CreateVFX("VFX_MuzzleFlash", Color.yellow, "Universal Render Pipeline/Particles/Unlit");
             
+            // 2b. Laser Muzzle Flash (Cyan, subtle)
+            CreateVFX("VFX_MuzzleFlash_Laser", new Color(0f, 1f, 1f, 0.8f), "Universal Render Pipeline/Particles/Unlit");
+            
             // 3. Water Splash
             CreateVFX("VFX_WaterSplash", Color.white, "Universal Render Pipeline/Particles/Unlit");
             
