@@ -13,6 +13,10 @@ namespace NavalCommand.Entities.Projectiles
         public Team ProjectileTeam;
         public WeaponType SourceWeaponType;
         
+        [Header("Health - Phase 1: Simple HP")]
+        public float MaxHP = 5f;  // NEW: Projectile durability (configurable)
+        private float currentHP;   // NEW: Runtime health
+        
         [Header("Movement Logic")]
         public string MovementLogicName; // Set by ContentGenerator/WeaponConfig
         private MovementLogic _movementLogic;
@@ -37,13 +41,21 @@ namespace NavalCommand.Entities.Projectiles
         private bool isInitialized = false;
         private bool isDespawning = false;
 
-        // IDamageable Implementation
+        // IDamageable Implementation - Phase 1: HP-based damage
         public void TakeDamage(float amount)
         {
-            Despawn();
+            currentHP -= amount;
+            
+            if (currentHP <= 0)
+            {
+                // CRITICAL FIX: Don't set isDespawning here!
+                // Setting it causes Despawn() to early-return (line 427: if(isDespawning) return)
+                // Let Despawn() set the flag itself to ensure cleanup happens
+                Despawn();
+            }
         }
 
-        public bool IsDead() => isDespawning;
+        public bool IsDead() => currentHP <= 0 || isDespawning;  // NEW: HP-based death check
         public Team GetTeam() => ProjectileTeam;
         
         public UnitType GetUnitType()
@@ -94,7 +106,8 @@ namespace NavalCommand.Entities.Projectiles
         private void OnEnable()
         {
             isDespawning = false;
-            isInitialized = false; 
+            isInitialized = false;
+            currentHP = MaxHP;  // NEW: Reset HP for pooled objects
             
             // Reset VFX controller for pooling (fixes intermittent VFX disappearance)
             if (_vfxController != null)
@@ -152,6 +165,10 @@ namespace NavalCommand.Entities.Projectiles
             
             ProjectileTeam = team;
             SourceWeaponType = weaponType;
+            
+            // NEW: Initialize HP
+            currentHP = MaxHP;
+            isDespawning = false;
             
             if (customGravityY.HasValue)
             {

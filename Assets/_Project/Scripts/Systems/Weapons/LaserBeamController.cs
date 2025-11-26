@@ -17,6 +17,8 @@ namespace NavalCommand.Systems.Weapons
         private Color beamColor;
         
         private bool isActive = false;
+        private bool hasKilledCurrentTarget = false;  // Track if we already killed this target
+        private int lastKillFrame = -1;     // NEW: Frame counter to ensure one-time VFX trigger
         
         private void Awake()
         {
@@ -40,26 +42,37 @@ namespace NavalCommand.Systems.Weapons
             
             ConfigureLineRenderer();
             isActive = true;
+            hasKilledCurrentTarget = false;  // NEW: Reset kill flag for new target
         }
         
         private void ConfigureLineRenderer()
         {
-            lineRenderer.startWidth = 0.1f;
-            lineRenderer.endWidth = 0.08f;
+            // 超粗光束（从 0.3m 增加到 0.5m）
+            lineRenderer.startWidth = 0.5f;
+            lineRenderer.endWidth = 0.45f;
             lineRenderer.positionCount = 2;
-            lineRenderer.startColor = beamColor;
-            lineRenderer.endColor = beamColor;
-            lineRenderer.numCapVertices = 5;
             
-            // Use emissive material for glow
-            if (lineRenderer.material == null || lineRenderer.material.name == "Default-Material")
-            {
-                Material beamMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
-                beamMat.SetColor("_BaseColor", beamColor);
-                beamMat.SetColor("_EmissionColor", beamColor * 2f);
-                beamMat.EnableKeyword("_EMISSION");
-                lineRenderer.material = beamMat;
-            }
+            // 使用 HDR 青色（超亮）
+            Color hdrCyan = new Color(0f, 2f, 2f, 1f);  // HDR 青色（超过1.0的值）
+            lineRenderer.startColor = hdrCyan;
+            lineRenderer.endColor = hdrCyan;
+            lineRenderer.numCapVertices = 10;  // 更圆滑的端点
+            
+            // 创建高发光材质
+            Material beamMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            
+            // 设置基础颜色和发光
+            beamMat.SetColor("_BaseColor", beamColor);
+            beamMat.SetColor("_EmissionColor", beamColor * 10f);  // 10倍发光强度
+            
+            // 启用发光和透明度
+            beamMat.EnableKeyword("_EMISSION");
+            beamMat.SetFloat("_Surface", 1);  // Transparent
+            beamMat.renderQueue = 3000;       // Transparent queue
+            
+            lineRenderer.material = beamMat;
+            
+            Debug.Log($"[LaserBeam] Configured: Width={lineRenderer.startWidth}, Color={beamColor}, Emission={beamColor * 10f}");
         }
         
         private void Update()
@@ -121,10 +134,79 @@ namespace NavalCommand.Systems.Weapons
         
         private void ApplyDamage(float deltaTime)
         {
-            if (target == null) return;
+            if (target == null)
+            {
+                Debug.LogWarning("[LaserBeam] ApplyDamage: target is NULL");
+                return;
+            }
+            
+            // If we already killed this target, stop attacking
+            if (hasKilledCurrentTarget)
+            {
+                return;  // Don't continue damaging/checking
+            }
+            
+            // CRITICAL: Check BEFORE TakeDamage
+            bool wasAlive = !target.IsDead();
             
             float damage = dps * deltaTime;
             target.TakeDamage(damage);
+            
+            // Check after damage
+            bool isDeadNow = target.IsDead();
+            
+            // NEW: Frame-based VFX trigger (CIWS-style one-time event)
+            if (wasAlive && isDeadNow && lastKillFrame != Time.frameCount)
+            {
+                Debug.Log($"<color=green>[LaserBeam]</color> KILLING BLOW (Frame {Time.frameCount})! Spawning explosion VFX!");
+                SpawnExplosionVFX(GetHitPoint());
+                
+                lastKillFrame = Time.frameCount;     // Mark this frame
+                hasKilledCurrentTarget = true;        // Mark this target as killed
+                
+                // Immediately deactivate beam (like CIWS projectile despawning)
+                Deactivate();
+            }
+            else if (!wasAlive && lastKillFrame != Time.frameCount)
+            {
+                // Target was already dead when beam started - this should not happen
+                Debug.LogWarning($"<color=red>[LaserBeam]</color> Target already dead at beam start (Frame {Time.frameCount})");
+                Deactivate();
+            }
+        }
+        
+        /// <summary>
+        /// Spawn explosion VFX at impact point (attacker-driven pattern, like CIWS projectiles)
+        /// </summary>
+        private void SpawnExplosionVFX(Vector3 position)
+        {
+            Debug.Log($"<color=cyan>[LaserBeam]</color> SpawnExplosionVFX called at {position}");
+            
+            if (NavalCommand.Systems.VFX.VFXManager.Instance == null)
+            {
+                Debug.LogError("<color=red>[LaserBeam]</color> VFXManager.Instance is NULL!");
+                return;
+            }
+            
+            Debug.Log($"<color=cyan>[LaserBeam]</color> VFXManager found, creating payload...");
+            
+            // Option A: Unified missile explosion - use SAME profile as CIWS (Kinetic, Small)
+            // This ensures all missile kills look the same regardless of weapon type
+            var impactProfile = new NavalCommand.Systems.VFX.ImpactProfile(
+                NavalCommand.Systems.VFX.ImpactCategory.Kinetic,  // Same as CIWS
+                NavalCommand.Systems.VFX.ImpactSize.Small
+            );
+            
+            var payload = new NavalCommand.Systems.VFX.ImpactPayload(
+                impactProfile,
+                NavalCommand.Systems.VFX.SurfaceType.Air,  // Assume air target (missiles/aircraft)
+                position,
+                Vector3.up
+            );
+            
+            Debug.Log($"<color=cyan>[LaserBeam]</color> Calling VFXManager.SpawnVFX with Kinetic/Small profile");
+            NavalCommand.Systems.VFX.VFXManager.Instance.SpawnVFX(payload);
+            Debug.Log($"<color=green>[LaserBeam]</color> VFX spawn call completed!");
         }
         
         public void Deactivate()

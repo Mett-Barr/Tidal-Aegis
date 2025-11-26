@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &568957285189476884
+--- !u!1 &4810362272709368332
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1249249888365941375}
-  - component: {fileID: 4236373693780446306}
-  - component: {fileID: 4733377170086763350}
+  - component: {fileID: 5238507494712716882}
+  - component: {fileID: 803637959505230629}
+  - component: {fileID: 4606972903540234467}
   m_Layer: 0
   m_Name: VFX_MissileTrail
   m_TagString: Untagged
@@ -18,13 +18,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1249249888365941375
+--- !u!4 &5238507494712716882
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 568957285189476884}
+  m_GameObject: {fileID: 4810362272709368332}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -33,27 +33,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &4236373693780446306
+--- !u!114 &803637959505230629
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 568957285189476884}
+  m_GameObject: {fileID: 4810362272709368332}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 73f9aa289b351416b8e2d42cfd139e90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   AutoDestructDelay: 1
---- !u!96 &4733377170086763350
+--- !u!96 &4606972903540234467
 TrailRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 568957285189476884}
+  m_GameObject: {fileID: 4810362272709368332}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1

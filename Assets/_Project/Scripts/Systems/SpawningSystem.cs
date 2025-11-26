@@ -18,6 +18,13 @@ namespace NavalCommand.Systems
         public float SpawnInterval = 2f;
         public int MaxEnemies = 10; // Limit active enemies
 
+        [Header("Ship Type Selection")]
+        [Tooltip("Enable/disable specific ship types")]
+        public bool SpawnMissileShips = true;   // Default: ON
+        public bool SpawnLightCombat = false;    // Default: OFF
+        public bool SpawnHeavyCombat = false;    // Default: OFF
+        public bool SpawnKamikazes = false;      // Default: OFF
+
         [Header("Debug Settings")]
         public SpawnMode Mode = SpawnMode.Random; // Default to Random for variety
         public int SpecificEnemyIndex = 0;
@@ -100,8 +107,44 @@ namespace NavalCommand.Systems
             }
             else
             {
-                if (EnemyPrefabs.Length > 0)
-                    prefab = EnemyPrefabs[Random.Range(0, EnemyPrefabs.Length)];
+                // Filter prefabs based on enabled ship types
+                System.Collections.Generic.List<GameObject> enabledPrefabs = new System.Collections.Generic.List<GameObject>();
+                
+                foreach (var p in EnemyPrefabs)
+                {
+                    if (p == null) continue;
+                    
+                    string prefabName = p.name.ToLower();
+                    
+                    // Check ship type and corresponding toggle
+                    if (prefabName.Contains("missile") && SpawnMissileShips)
+                    {
+                        enabledPrefabs.Add(p);
+                    }
+                    else if ((prefabName.Contains("light") || prefabName.Contains("combat")) && 
+                             !prefabName.Contains("heavy") && SpawnLightCombat)
+                    {
+                        enabledPrefabs.Add(p);
+                    }
+                    else if (prefabName.Contains("heavy") && SpawnHeavyCombat)
+                    {
+                        enabledPrefabs.Add(p);
+                    }
+                    else if (prefabName.Contains("kamikaze") && SpawnKamikazes)
+                    {
+                        enabledPrefabs.Add(p);
+                    }
+                }
+                
+                if (enabledPrefabs.Count > 0)
+                {
+                    prefab = enabledPrefabs[Random.Range(0, enabledPrefabs.Count)];
+                }
+                else
+                {
+                    Debug.LogWarning("[SpawningSystem] No ship types enabled! Enable at least one ship type.");
+                    return;
+                }
             }
 
             if (prefab != null)

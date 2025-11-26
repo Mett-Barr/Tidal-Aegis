@@ -14,12 +14,14 @@ namespace NavalCommand.Entities.Units
         public float MaxTurnRate = 30f; // Degrees per second
         public float RudderSensitivity = 20f; // How fast rudder changes effect
 
-        [Header("Weapon Control")]
-        public bool EnableMainGuns = true;
-        public bool EnableAutocannons = true;
-        public bool EnableMissiles = true;
+        [Header("Weapon Control - Dynamic Discovery")]
+        [Tooltip("Automatically discovers all weapon types on this ship")]
+        public bool EnableFlagshipGun = true;
+        public bool EnableAutocannon = true;
+        public bool EnableMissile = true;
         public bool EnableCIWS = true;
-        public bool EnableTorpedoes = true;
+        public bool EnableTorpedo = true;
+        public bool EnableLaserCIWS = true;  // NEW: Laser weapons
 
         [Header("Current Status")]
         public ThrottleState CurrentThrottle = ThrottleState.Stop;
@@ -84,6 +86,10 @@ namespace NavalCommand.Entities.Units
             }
         }
 
+        /// <summary>
+        /// NEW: Dynamic weapon control based on WeaponType enum instead of string matching
+        /// Automatically discovers all weapon types on the ship without needing manual updates
+        /// </summary>
         private void ApplyWeaponSettings()
         {
             var weapons = GetComponentsInChildren<Components.WeaponController>();
@@ -91,14 +97,37 @@ namespace NavalCommand.Entities.Units
             {
                 if (weapon.WeaponStats == null) continue;
 
-                string wName = weapon.WeaponStats.name;
+                // NEW: Use WeaponType enum for reliable type detection
+                Data.WeaponType weaponType = weapon.WeaponStats.Type;
                 bool shouldEnable = true;
 
-                if (wName.Contains("FlagshipGun")) shouldEnable = EnableMainGuns;
-                else if (wName.Contains("Autocannon")) shouldEnable = EnableAutocannons;
-                else if (wName.Contains("Missile")) shouldEnable = EnableMissiles;
-                else if (wName.Contains("CIWS")) shouldEnable = EnableCIWS;
-                else if (wName.Contains("Torpedo")) shouldEnable = EnableTorpedoes;
+                // Map WeaponType to control toggle
+                switch (weaponType)
+                {
+                    case Data.WeaponType.FlagshipGun:
+                        shouldEnable = EnableFlagshipGun;
+                        break;
+                    case Data.WeaponType.Autocannon:
+                        shouldEnable = EnableAutocannon;
+                        break;
+                    case Data.WeaponType.Missile:
+                        shouldEnable = EnableMissile;
+                        break;
+                    case Data.WeaponType.CIWS:
+                        shouldEnable = EnableCIWS;
+                        break;
+                    case Data.WeaponType.Torpedo:
+                        shouldEnable = EnableTorpedo;
+                        break;
+                    case Data.WeaponType.LaserCIWS:  // NEW: Laser support
+                        shouldEnable = EnableLaserCIWS;
+                        break;
+                    default:
+                        // Unknown weapon type, enable by default and log warning
+                        shouldEnable = true;
+                        Debug.LogWarning($"[FlagshipController] Unknown weapon type: {weaponType} on {weapon.WeaponStats.name}");
+                        break;
+                }
 
                 weapon.IsWeaponEnabled = shouldEnable;
             }

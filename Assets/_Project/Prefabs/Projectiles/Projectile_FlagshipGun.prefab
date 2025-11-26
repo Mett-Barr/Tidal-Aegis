@@ -216,6 +216,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ProjectileTeam: 0
   SourceWeaponType: 0
+  MaxHP: 5
   MovementLogicName: Ballistic
   Speed: 762
   Damage: 30

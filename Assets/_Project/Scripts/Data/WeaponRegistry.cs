@@ -144,7 +144,7 @@ namespace NavalCommand.Data
             
             // === PAYLOAD: Energy Damage (as DPS) ===
             ImpactProfile = new ImpactProfile(ImpactCategory.Energy, ImpactSize.Small),
-            Damage = 50f,                    // 50 DPS (damage per second)
+            Damage = 2.5f,                   // 2.5 DPS (Phase 1: HP-based damage, 5 HP / 2.5 DPS = 2s kill)
             Cooldown = 0.1f,                 // Beam activation delay
             ProjectileColor = new Color(0f, 1f, 1f),  // Cyan beam
             
