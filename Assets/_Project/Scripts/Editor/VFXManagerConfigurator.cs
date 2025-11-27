@@ -44,9 +44,8 @@ namespace NavalCommand.Editor
             // Apply changes
             so.ApplyModifiedProperties();
 
-            // Mark scene dirty to save changes
+            // Mark scene dirty (configuration persists for current session)
             EditorUtility.SetDirty(vfxManager);
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(vfxManager.gameObject.scene);
 
             Debug.Log("[VFX_DEBUG] VFXManager configured:");
             Debug.Log($"  - MissileTrail: {(missileTrail != null ? "✓" : "✗")}");

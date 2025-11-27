@@ -23,6 +23,7 @@ namespace NavalCommand.Editor.Tooling
             RestorePoolManager(); // Infrastructure first
             RestoreWorldPhysicsSystem(); // Physics first
             RestoreSpatialGridSystem(); // Grid second
+            RestoreVFXManager(); // VFX system (NEW)
             RestoreGameManager();
             RestoreSpawningSystem();
             RestoreHUD();
@@ -199,6 +200,35 @@ namespace NavalCommand.Editor.Tooling
                 go.AddComponent<SpatialGridSystem>();
                 Debug.Log("Created SpatialGridSystem");
             }
+        }
+
+        private static void RestoreVFXManager()
+        {
+            var vfxManager = Object.FindObjectOfType<NavalCommand.Systems.VFX.VFXManager>();
+            if (vfxManager == null)
+            {
+                GameObject go = new GameObject("VFXManager");
+                vfxManager = go.AddComponent<NavalCommand.Systems.VFX.VFXManager>();
+                Debug.Log("Created VFXManager");
+            }
+
+            // Assign VFX Library
+            string libraryPath = "Assets/_Project/Data/VFX/DefaultVFXLibrary.asset";
+            var library = AssetDatabase.LoadAssetAtPath<NavalCommand.Systems.VFX.VFXLibrarySO>(libraryPath);
+            
+            if (library != null)
+            {
+                SerializedObject so = new SerializedObject(vfxManager);
+                so.FindProperty("_library").objectReferenceValue = library;
+                so.ApplyModifiedProperties();
+                Debug.Log("Assigned VFX Library to VFXManager");
+            }
+            else
+            {
+                Debug.LogError($"Could not find VFX Library at {libraryPath}");
+            }
+            
+            EditorUtility.SetDirty(vfxManager);
         }
 
         private static void RestoreHUD()

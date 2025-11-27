@@ -79,8 +79,11 @@ namespace NavalCommand.Systems.Weapons
         {
             if (!isActive) return;
             
-            // Check if target is still valid
-            if (target == null || !IsTargetInRange())
+            // CRITICAL: Validate target liveness (Aegis CEC Principle)
+            // Check if target is still valid, in range, AND ALIVE
+            // This prevents wasting energy on targets killed by other weapons (e.g. CIWS)
+            // Follows real-world Cooperative Engagement Capability doctrine
+            if (target == null || target.IsDead() || !IsTargetInRange())
             {
                 Deactivate();
                 return;
@@ -115,34 +118,36 @@ namespace NavalCommand.Systems.Weapons
         
         private Vector3 GetHitPoint()
         {
-            var targetComponent = target as Component;
-            if (targetComponent == null) return origin.position;
+            if (origin == null) return Vector3.zero;
             
-            Vector3 targetPos = targetComponent.transform.position;
-            Vector3 direction = (targetPos - origin.position).normalized;
+            // CRITICAL FIX: Beam MUST follow turret's actual forward direction
+            // NOT force-aim at target center (which violates physics realism)
+            // This ensures "point-to-hit" accuracy: if turret points at target, beam hits; if not, beam misses
+            Vector3 beamDirection = origin.forward;
             
-            // CRITICAL FIX: Avoid Self-Hit & Ensure Target Hit
-            // Global Physics.Raycast(~0) was hitting the Laser Turret itself (Self-Hit).
-            // We must query the TARGET'S collider specifically.
+            // Raycast along the beam direction to find actual hit point
+            Ray ray = new Ray(origin.position, beamDirection);
             
-            Collider targetCol = targetComponent.GetComponent<Collider>();
-            if (targetCol != null)
+            // Try to hit anything in the beam path (prefer specific target, but accept any hit)
+            if (Physics.Raycast(ray, out RaycastHit hit, maxRange))
             {
-                Ray ray = new Ray(origin.position, direction);
-                
-                // 1. Try direct Raycast on the specific collider (Ignores other objects, works on Triggers)
-                if (targetCol.Raycast(ray, out RaycastHit hit, maxRange))
+                // Verify if we hit the intended target
+                var targetComponent = target as Component;
+                if (targetComponent != null && hit.collider.transform.IsChildOf(targetComponent.transform))
                 {
+                    // Success: Beam is aligned and hitting the target
                     return hit.point;
                 }
-                
-                // 2. If Raycast fails (e.g. inside collider), use ClosestPoint
-                // This returns a point on the surface (or inside) closest to the laser origin.
-                return targetCol.ClosestPoint(origin.position);
+                else
+                {
+                    // Beam hit something else (obstacle or different target)
+                    // Still return hit point for visual feedback
+                    return hit.point;
+                }
             }
             
-            // Fallback to target center if no collider found
-            return targetPos;
+            // Beam didn't hit anything - extend to max range
+            return origin.position + beamDirection * maxRange;
         }
         
         private void ApplyDamage(float deltaTime)
@@ -151,10 +156,39 @@ namespace NavalCommand.Systems.Weapons
             
             if (hasKilledCurrentTarget) return;
 
-            // CRITICAL FIX: Calculate hit point BEFORE dealing damage.
-            // If TakeDamage kills the target, it might be Despawned/Deactivated immediately.
-            // Physics.Raycast will fail on an inactive collider, causing us to lose the surface hit point.
+            // CRITICAL FIX: Calculate hit point BEFORE dealing damage
+            // AND verify that beam is actually hitting the target
             Vector3 potentialHitPoint = GetHitPoint();
+            
+            // Verify beam is hitting the intended target
+            var targetComponent = target as Component;
+            if (targetComponent != null)
+            {
+                Vector3 beamDirection = origin.forward;
+                Ray ray = new Ray(origin.position, beamDirection);
+                
+                bool isHittingTarget = false;
+                
+                // Check if raycast hits the target
+                if (Physics.Raycast(ray, out RaycastHit hit, maxRange))
+                {
+                    // Verify the hit object is part of the target hierarchy
+                    if (hit.collider.transform.IsChildOf(targetComponent.transform) || 
+                        hit.collider.transform == targetComponent.transform)
+                    {
+                        isHittingTarget = true;
+                        potentialHitPoint = hit.point;
+                    }
+                }
+                
+                // Only apply damage if beam is actually hitting the target
+                if (!isHittingTarget)
+                {
+                    // Beam is not aligned with target - no damage
+                    // This enforces "point-to-hit" principle
+                    return;
+                }
+            }
             
             bool wasAlive = !target.IsDead();
             float damage = dps * deltaTime;
@@ -164,11 +198,14 @@ namespace NavalCommand.Systems.Weapons
             if (wasAlive && isDeadNow && lastKillFrame != Time.frameCount)
             {
                 // Spawn explosion at the exact hit point (Surface)
-                // We use the pre-calculated point from when the target was still active
                 SpawnExplosionVFX(potentialHitPoint);
                 
                 lastKillFrame = Time.frameCount;
                 hasKilledCurrentTarget = true;
+                
+                // CRITICAL: Immediately deactivate beam on kill for clean visual transition
+                // WeaponController will handle retargeting after cooldown period
+                // This follows game design pattern from X4/Stellaris: beam shuts off -> cooldown -> retarget
                 Deactivate();
             }
         }

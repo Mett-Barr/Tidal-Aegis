@@ -40,6 +40,13 @@ namespace NavalCommand.Systems.VFX
             {
                 Debug.LogError("[VFXManager] VFX Library is missing!");
             }
+            
+            // DIAGNOSTIC: Log VFX Manager state
+            Debug.Log($"[VFXManager] Initialized - Library: {(_library != null ? "✓" : "✗")}");
+            Debug.Log($"[VFXManager] Trail Prefabs - Missile: {(_missileTrailPrefab != null ? "✓" : "✗")}, " +
+                      $"Torpedo: {(_torpedoBubblesPrefab != null ? "✓" : "✗")}, " +
+                      $"Tracer: {(_tracerGlowPrefab != null ? "✓" : "✗")}, " +
+                      $"MuzzleFlash: {(_muzzleFlashPrefab != null ? "✓" : "✗")}");
         }
 
         private void InitializeTrailVFXPools()
@@ -98,9 +105,12 @@ namespace NavalCommand.Systems.VFX
         public GameObject SpawnTrailVFX(NavalCommand.VFX.VFXType vfxType, Transform target)
         {
             if (vfxType == NavalCommand.VFX.VFXType.None) return null;
+            
             if (!_trailVFXPools.ContainsKey(vfxType))
             {
                 Debug.LogError($"[VFX_DEBUG] ERROR: VFX type {vfxType} not registered in pool!");
+                Debug.LogError($"[VFX_DEBUG] Available types: {string.Join(", ", _trailVFXPools.Keys)}");
+                Debug.LogError($"[VFX_DEBUG] Check VFXManager Inspector - prefabs may be NULL!");
                 return null;
             }
 

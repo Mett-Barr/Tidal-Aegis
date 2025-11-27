@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1295272666514832143
+--- !u!1 &117130576045449942
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,9 +8,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1134085384251037946}
-  - component: {fileID: 2721960634874242226}
-  - component: {fileID: 8771204354432527654}
+  - component: {fileID: 7242589944874431407}
+  - component: {fileID: 1631417921755375076}
+  - component: {fileID: 4095634835263979920}
   m_Layer: 0
   m_Name: VFX_TracerGlow
   m_TagString: Untagged
@@ -18,43 +18,43 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1134085384251037946
+--- !u!4 &7242589944874431407
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295272666514832143}
+  m_GameObject: {fileID: 117130576045449942}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 9152410477436375117}
+  - {fileID: 7601963860627470820}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2721960634874242226
+--- !u!114 &1631417921755375076
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295272666514832143}
+  m_GameObject: {fileID: 117130576045449942}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 73f9aa289b351416b8e2d42cfd139e90, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   AutoDestructDelay: 1.5
---- !u!96 &8771204354432527654
+--- !u!96 &4095634835263979920
 TrailRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295272666514832143}
+  m_GameObject: {fileID: 117130576045449942}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -178,7 +178,7 @@ TrailRenderer:
   m_Autodestruct: 0
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
---- !u!1 &7014368796828782828
+--- !u!1 &6063326715689847968
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -186,9 +186,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 9152410477436375117}
-  - component: {fileID: 6020080469701599975}
-  - component: {fileID: 8904109181104917976}
+  - component: {fileID: 7601963860627470820}
+  - component: {fileID: 5353088407926937902}
+  - component: {fileID: 1773274807691619172}
   m_Layer: 0
   m_Name: Glow
   m_TagString: Untagged
@@ -196,28 +196,28 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &9152410477436375117
+--- !u!4 &7601963860627470820
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7014368796828782828}
+  m_GameObject: {fileID: 6063326715689847968}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1134085384251037946}
+  m_Father: {fileID: 7242589944874431407}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!198 &6020080469701599975
+--- !u!198 &5353088407926937902
 ParticleSystem:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7014368796828782828}
+  m_GameObject: {fileID: 6063326715689847968}
   serializedVersion: 8
   lengthInSec: 5
   simulationSpeed: 1
@@ -4934,14 +4934,14 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
---- !u!199 &8904109181104917976
+--- !u!199 &1773274807691619172
 ParticleSystemRenderer:
   serializedVersion: 6
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7014368796828782828}
+  m_GameObject: {fileID: 6063326715689847968}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0

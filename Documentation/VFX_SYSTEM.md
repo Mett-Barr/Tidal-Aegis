@@ -103,24 +103,6 @@ VFXManagerConfigurator.ConfigureVFXManager();
 
 ---
 
-## 🚫 不要做的事
-
-### ❌ 不要集成到 Rebuild World
-
-**原因：**
-1. Shader兼容性问题可能破坏现有VFX
-2. VFX应该是一次性生成，长期使用
-3. 删除重建会导致配置丢失
-
-### ❌ 不要修改现有VFX的Shader
-
-**原因：**
-- 导弹烟雾等VFX已经工作正常
-- 修改shader可能导致全部变粉色
-- 只修复有问题的VFX（如MuzzleFlash）
-
----
-
 ## 🐛 调试VFX问题
 
 ### 检查Shader是否存在
@@ -156,37 +138,89 @@ Hierarchy → VFXManager → Inspector
 
 ---
 
-## 📋 MuzzleFlash 修复清单
+## 🚨 关键问题排查：VFX 完全失效
 
-### 当前状态
-- ❌ 显示粉色方块
-- ✅ VFXManager已配置
-- ✅ Prefab存在
-- ❌ Shader不兼容
+### 症状
 
-### 修复步骤
+- ✅ Impact VFX（爆炸）正常工作
+- ❌ Trail VFX（烟雾轨迹）完全不出现
 
-1. **修改shader为Legacy**
-   ```csharp
-   // VFXPrefabGenerator.cs:193
-   Material flashMat = new Material(Shader.Find("Legacy Shaders/Particles/Additive"));
-   ```
+### 根本原因
 
-2. **删除旧Prefab**
-   ```
-   Assets/_Project/Prefabs/VFX/Projectile/VFX_MuzzleFlash.prefab
-   右键 → Delete
-   ```
+**`HierarchyRestorer.RestoreHierarchy()` 缺少 VFXManager 恢复逻辑**
 
-3. **重新生成**
-   ```
-   Tools → Generate → VFX Prefabs
-   ```
+VFX 系统分为两个子系统：
+1. **Impact VFX**: 通过 `VFXLibrarySO` 管理（爆炸、水花等）
+2. **Trail VFX**: 通过 `VFXManager` 对象池管理（烟雾、轨迹等）
 
-4. **测试**
-   - Play Mode
-   - 炮塔开火
-   - 应显示黄色发光效果
+如果场景中没有 `VFXManager` GameObject：
+- `VFXManagerConfigurator` 无法配置 Trail VFX Prefab 引用
+- 所有 `SpawnTrailVFX()` 调用失败
+- 只有 Impact VFX 能工作（因为它们通过 PoolManager）
+
+### 解决方案
+
+在 `HierarchyRestorer.cs` 添加 `RestoreVFXManager()` 方法：
+
+```csharp
+private static void RestoreVFXManager()
+{
+    var vfxManager = Object.FindObjectOfType<NavalCommand.Systems.VFX.VFXManager>();
+    if (vfxManager == null)
+    {
+        GameObject go = new GameObject("VFXManager");
+        vfxManager = go.AddComponent<NavalCommand.Systems.VFX.VFXManager>();
+        Debug.Log("Created VFXManager");
+    }
+
+    // Assign VFX Library
+    string libraryPath = "Assets/_Project/Data/VFX/DefaultVFXLibrary.asset";
+    var library = AssetDatabase.LoadAssetAtPath<NavalCommand.Systems.VFX.VFXLibrarySO>(libraryPath);
+    
+    if (library != null)
+    {
+        SerializedObject so = new SerializedObject(vfxManager);
+        so.FindProperty("_library").objectReferenceValue = library;
+        so.ApplyModifiedProperties();
+        Debug.Log("Assigned VFX Library to VFXManager");
+    }
+    
+    EditorUtility.SetDirty(vfxManager);
+}
+```
+
+并在 `RestoreHierarchy()` 中调用：
+
+```csharp
+public static void RestoreHierarchy()
+{
+    // ... existing code ...
+    RestorePoolManager();
+    RestoreWorldPhysicsSystem();
+    RestoreSpatialGridSystem();
+    RestoreVFXManager();  // ← 添加这行
+    RestoreGameManager();
+    // ...
+}
+```
+
+### 诊断日志
+
+在 Play Mode 启动时检查 Console：
+
+**正常状态**：
+```
+[VFXManager] Initialized - Library: ✓
+[VFXManager] Trail Prefabs - Missile: ✓, Torpedo: ✓, Tracer: ✓, MuzzleFlash: ✓
+[VFX_DEBUG] VFXManager initialized: 4 types, 20 each
+```
+
+**异常状态**（VFXManager 缺失）：
+```
+[VFXManager] Trail Prefabs - Missile: ✗, Torpedo: ✗, Tracer: ✗, MuzzleFlash: ✗
+[VFX_DEBUG] VFXManager initialized: 0 types, 20 each
+[VFX_DEBUG] ERROR: VFX type MissileTrail not registered in pool!
+```
 
 ---
 

@@ -132,26 +132,54 @@ namespace NavalCommand.Entities.Components
             // 3. Firing Execution
             if (isFiring)
             {
-                // Handle High ROF (Multiple shots per frame)
-                while (cooldownTimer <= 0)
+                // BEAM WEAPONS: Different handling from projectile weapons
+                if (WeaponStats.Mode == FiringMode.Beam)
                 {
-                    if (currentTarget != null)
+                    // Beam weapons fire once and maintain until target is killed/lost
+                    // Only fire if cooldown is ready AND beam is not already active
+                    if (cooldownTimer <= 0)
                     {
-                        Fire(currentTarget.GetComponent<IDamageable>());
+                        if (currentTarget != null)
+                        {
+                            // Check if beam is already active on this target
+                            bool beamAlreadyActive = (activeBeam != null && activeBeam.gameObject.activeSelf);
+                            
+                            if (!beamAlreadyActive)
+                            {
+                                Fire(currentTarget.GetComponent<IDamageable>());
+                                cooldownTimer = WeaponStats.Cooldown;  // Set cooldown after activation
+                            }
+                            // If beam is already active, let it continue (it's handling damage in its own Update())
+                        }
+                        else
+                        {
+                            isFiring = false;
+                        }
                     }
-                    else
+                }
+                else
+                {
+                    // PROJECTILE WEAPONS: Original high ROF handling
+                    while (cooldownTimer <= 0)
                     {
-                        isFiring = false;
-                        break;
-                    }
+                        if (currentTarget != null)
+                        {
+                            Fire(currentTarget.GetComponent<IDamageable>());
+                        }
+                        else
+                        {
+                            isFiring = false;
+                            break;
+                        }
 
-                    cooldownTimer += WeaponStats.Cooldown; // Accumulate debt
-                    
-                    // Safety break for extremely low cooldowns to prevent freeze
-                    if (WeaponStats.Cooldown < 0.001f) 
-                    {
-                        cooldownTimer = 0;
-                        break;
+                        cooldownTimer += WeaponStats.Cooldown; // Accumulate debt
+                        
+                        // Safety break for extremely low cooldowns to prevent freeze
+                        if (WeaponStats.Cooldown < 0.001f) 
+                        {
+                            cooldownTimer = 0;
+                            break;
+                        }
                     }
                 }
             }
@@ -249,6 +277,50 @@ namespace NavalCommand.Entities.Components
                 return new LinearTargetPredictor(currentTarget.position, targetVel);
             }
         }
+        
+        /// <summary>
+        /// Check if turret can effectively track the target to maintain "dwell time" for beam weapons.
+        /// Based on real-world laser weapon doctrine: beam must remain on target for sustained damage.
+        /// </summary>
+        private bool CanEffectivelyTrack(Transform target)
+        {
+            if (target == null || FirePoint == null) return false;
+            
+            // Calculate target's angular velocity relative to turret
+            Vector3 toTarget = target.position - FirePoint.position;
+            float distance = toTarget.magnitude;
+            
+            if (distance < 0.1f) return true;  // Too close to miss
+            
+            // Get target's velocity
+            Rigidbody targetRb = target.GetComponent<Rigidbody>();
+            if (targetRb == null) return true;  // Static target, always trackable
+            
+            Vector3 targetVelocity = targetRb.velocity;
+            
+            // Calculate lateral velocity (perpendicular to line of sight)
+            Vector3 lateralVelocity = Vector3.ProjectOnPlane(targetVelocity, toTarget.normalized);
+            
+            // Calculate required angular velocity (rad/s -> deg/s)
+            float requiredAngularVel = Mathf.Rad2Deg * (lateralVelocity.magnitude / distance);
+            
+            // Check if turret can keep up (with 20% safety margin)
+            // If target requires faster tracking than turret can provide, beam will "sweep" rather than "dwell"
+            float maxTrackingSpeed = WeaponStats.RotationSpeed;
+            
+            if (requiredAngularVel > maxTrackingSpeed * 1.2f)
+            {
+                // Target moving too fast - beam cannot maintain effective dwell time
+                // This follows real-world laser weapon doctrine (LaWS/HELIOS)
+                if (Time.frameCount % 120 == 0)  // Log every 2 seconds
+                {
+                    Debug.Log($"[{gameObject.name}] Target too agile: Requires {requiredAngularVel:F1}°/s, Max tracking {maxTrackingSpeed:F1}°/s. Ceasing fire.");
+                }
+                return false;
+            }
+            
+            return true;
+        }
 
         // Multi-Muzzle Support
         private List<Transform> _muzzles = new List<Transform>();
@@ -303,6 +375,21 @@ namespace NavalCommand.Entities.Components
             // Get first muzzle (beam weapons typically have single emitter)
             Transform muzzle = _muzzles[0];
             
+            // CRITICAL: Check if turret can effectively track the target
+            // Real-world laser weapons (LaWS/HELIOS) require sustained "dwell time" on target
+            // If target angular velocity exceeds turret tracking speed, beam will "sweep" rather than "dwell"
+            // This wastes energy without causing effective damage
+            Transform targetTransform = ((MonoBehaviour)target).transform;
+            if (!CanEffectivelyTrack(targetTransform))
+            {
+                // Target moving too fast - cease fire to avoid energy waste
+                if (activeBeam != null && activeBeam.gameObject.activeSelf)
+                {
+                    activeBeam.Deactivate();  // Stop current beam
+                }
+                return;
+            }
+            
             // Get or reuse beam
             if (activeBeam == null || !activeBeam.gameObject.activeSelf)
             {
@@ -318,7 +405,8 @@ namespace NavalCommand.Entities.Components
                 WeaponStats.ProjectileColor
             );
             
-            cooldownTimer = WeaponStats.Cooldown;  // Initial activation delay
+            // NOTE: Cooldown is now set in Update() after calling this function
+            // This ensures proper cooldown enforcement when beam is deactivated
         }
         
         private void FireProjectile(IDamageable target)

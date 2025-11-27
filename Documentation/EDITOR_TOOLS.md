@@ -91,9 +91,23 @@ public static void RegisterAllTools(EditorToolRegistry registry)
 - **重建世界 (Rebuild World)** - `Ctrl+Shift+T`
   - 调用: `HierarchyRestorer.RestoreHierarchy()`
   - 功能：完整场景重建
+  - **系统恢复顺序**：
+    1. `ContentRebuilder.RebuildAllContent()` - 重新生成所有资源
+    2. `RestorePoolManager()` - 对象池系统
+    3. `RestoreWorldPhysicsSystem()` - 物理系统
+    4. `RestoreSpatialGridSystem()` - 空间网格系统
+    5. `RestoreVFXManager()` - **VFX 管理器**（关键！）
+    6. `RestoreGameManager()` - 游戏管理器
+    7. `RestoreSpawningSystem()` - 生成系统
+    8. `RestoreHUD()` - UI 系统
+    9. `RestoreEventSystem()` - 事件系统
+    10. `RestoreLighting()` - 光照
+    11. `RestoreCamera()` - 相机
 
 - **生成空船殼 (Generate Hulls)**
   - 调用: `ContentRebuilder.GenerateEmptyHulls()`
+
+> **⚠️ 重要**：如果缺少任何系统恢复步骤（特别是 `RestoreVFXManager()`），会导致该系统完全失效。
 
 ### VFX 工具 (VFX Tools)
 - **清理 VFX Prefabs**
