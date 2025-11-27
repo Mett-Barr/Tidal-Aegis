@@ -555,7 +555,8 @@ namespace NavalCommand.Utils
             mr.sharedMaterial = hullMat;
 
             // CRITICAL: Use sharedMesh for Asset assignment
-            mf.sharedMesh = GenerateHexagonalHull(W, H_hull, L);
+            // Pass deterministic name based on weight class
+            mf.sharedMesh = GenerateHexagonalHull(W, H_hull, L, $"HullMesh_{weight}");
 
             // Add MeshCollider for accurate Hull collision
             MeshCollider mc = hullMeshObj.AddComponent<MeshCollider>();
@@ -634,10 +635,10 @@ namespace NavalCommand.Utils
             return container;
         }
 
-        private Mesh GenerateHexagonalHull(float width, float depth, float length)
+        private Mesh GenerateHexagonalHull(float width, float depth, float length, string hullName)
         {
             Mesh mesh = new Mesh();
-            mesh.name = "HexHull";
+            mesh.name = hullName;
 
             float halfW = width / 2f;
             float halfL = length / 2f;
@@ -726,23 +727,34 @@ namespace NavalCommand.Utils
                 System.IO.Directory.CreateDirectory(folderPath);
             }
 
-            string meshName = $"HullMesh_{System.DateTime.Now.Ticks}";
-            string assetPath = $"{folderPath}/{meshName}.asset";
+            string assetPath = $"{folderPath}/{hullName}.asset";
             
-            UnityEditor.AssetDatabase.CreateAsset(mesh, assetPath);
-            UnityEditor.AssetDatabase.SaveAssets();
-            UnityEditor.AssetDatabase.Refresh(); // FORCE REFRESH
-            
-            Debug.Log($"[ShipBuilder] Saved Hull Mesh to {assetPath}");
-            
-            // CRITICAL: Return the ASSET, not the runtime mesh
-            Mesh loadedMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
-            if (loadedMesh == null)
+            // CRITICAL FIX: Reuse existing asset to preserve GUID
+            // This prevents breaking references when multiple ships use the same hull mesh (e.g. Light class)
+            Mesh existingMesh = UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+            if (existingMesh != null)
             {
-                Debug.LogError("[ShipBuilder] Failed to load saved mesh! Returning runtime mesh.");
-                return mesh;
+                // Update existing mesh in-place
+                existingMesh.Clear();
+                existingMesh.SetVertices(verts);
+                existingMesh.SetTriangles(tris, 0);
+                existingMesh.RecalculateNormals();
+                existingMesh.name = hullName;
+                
+                UnityEditor.EditorUtility.SetDirty(existingMesh);
+                UnityEditor.AssetDatabase.SaveAssets();
+                
+                return existingMesh;
             }
-            return loadedMesh;
+            else
+            {
+                // Create new asset
+                UnityEditor.AssetDatabase.CreateAsset(mesh, assetPath);
+                UnityEditor.AssetDatabase.SaveAssets();
+                UnityEditor.AssetDatabase.Refresh();
+                
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>(assetPath);
+            }
 #else
             return mesh;
 #endif

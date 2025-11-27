@@ -160,3 +160,60 @@ grep -r "MenuItem.*%#" Assets/_Project/Scripts/Editor/
 
 - [VFX 系统架构](VFX_SYSTEM.md)
 - [武器系统](WEAPON_SYSTEM.md)
+
+---
+
+## 🛡️ 资源生成最佳实践 (Asset Generation Best Practices)
+
+### 1. 确定性命名 (Deterministic Naming)
+**规则**: 生成的资源文件名必须是确定性的，**严禁**使用时间戳或随机数。
+
+❌ **错误示范**:
+```csharp
+string meshName = $"HullMesh_{DateTime.Now.Ticks}.asset"; // 每次生成都会创建新文件！
+```
+
+✅ **正确示范**:
+```csharp
+string meshName = $"HullMesh_{weightClass}.asset"; // 每次生成都覆盖同一个文件
+```
+
+**后果**:
+- 使用时间戳会导致 `Generated` 文件夹无限膨胀。
+- 每次 Rebuild 都会生成新 GUID，导致 Prefab 引用丢失（Missing Mesh/Script）。
+
+---
+
+### 2. GUID 保护 (GUID Preservation)
+**规则**: 当资源已存在时，**优先更新**而非删除重建。
+
+❌ **错误示范 (Delete & Recreate)**:
+```csharp
+if (File.Exists(path)) AssetDatabase.DeleteAsset(path); // GUID 改变！
+AssetDatabase.CreateAsset(newMesh, path);
+```
+**后果**: 引用该资源的所有 Prefab 都会丢失引用 (Missing Reference)。
+
+✅ **正确示范 (Update In-Place)**:
+```csharp
+Mesh existingMesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+if (existingMesh != null) {
+    existingMesh.Clear();
+    existingMesh.SetVertices(verts);
+    // ... 更新数据 ...
+    EditorUtility.SetDirty(existingMesh); // 保持 GUID 不变
+} else {
+    AssetDatabase.CreateAsset(newMesh, path);
+}
+```
+
+### 3. 安全覆盖 (Safe Overwrite)
+**规则**: 如果必须重建资源（无法 Update In-Place），必须先显式删除旧资源，防止 `CreateAsset` 失败或产生幽灵引用。
+
+```csharp
+// 如果无法复用（例如类型改变），先清理
+if (AssetDatabase.LoadAssetAtPath<Object>(path) != null) {
+    AssetDatabase.DeleteAsset(path);
+}
+AssetDatabase.CreateAsset(newItem, path);
+```
