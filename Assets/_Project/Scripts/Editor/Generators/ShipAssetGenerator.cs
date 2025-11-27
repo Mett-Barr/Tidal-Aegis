@@ -211,8 +211,30 @@ namespace NavalCommand.Editor.Generators
 
         private static void AttachWeapon(ShipBuilder builder, GameObject shipRoot, Transform mountPoint, WeaponType type, WeaponStatsSO stats, Material hullMat)
         {
+            GameObject weaponVisual = null;
+
             // 1. Create Visuals
-            GameObject weaponVisual = builder.CreateWeaponModule(type, hullMat);
+            // NEW: Check for specific prefab for LaserCIWS
+            if (type == WeaponType.LaserCIWS)
+            {
+                string prefabPath = "Assets/_Project/Prefabs/Weapons/LaserCannon_Spherical.prefab";
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                if (prefab != null)
+                {
+                    weaponVisual = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+                }
+                else
+                {
+                    Debug.LogWarning($"[ShipAssetGenerator] Laser Cannon prefab not found at {prefabPath}, falling back to generic module.");
+                }
+            }
+
+            // Fallback to generic builder if no prefab loaded
+            if (weaponVisual == null)
+            {
+                weaponVisual = builder.CreateWeaponModule(type, hullMat);
+            }
+
             weaponVisual.transform.SetParent(mountPoint);
             weaponVisual.transform.localPosition = Vector3.zero;
             weaponVisual.transform.localRotation = Quaternion.identity;
@@ -236,20 +258,15 @@ namespace NavalCommand.Editor.Generators
             }
 
             // 3. Add Controller
-            WeaponController wc = weaponVisual.AddComponent<WeaponController>();
+            // CRITICAL: Check if component exists first (Prefab might have it)
+            WeaponController wc = weaponVisual.GetComponent<WeaponController>();
+            if (wc == null) wc = weaponVisual.AddComponent<WeaponController>();
+            
             wc.FirePoint = firePoint;
             wc.WeaponStats = stats;
             wc.OwnerTeam = Team.Player; // Default, will be overwritten by UnitController
             
             // 4. Configure TurretRotator (New Logic)
-            // The WeaponController will add TurretRotator on Awake if missing,
-            // but we can pre-configure it here if needed.
-            // Actually, ContentGenerator previously set flags here.
-            // But now WeaponConfig/WeaponStatsSO has the data.
-            // The TurretRotator should read from WeaponStatsSO? 
-            // Currently TurretRotator doesn't read SO. It has public fields.
-            // We should configure it here based on SO.
-            
             TurretRotator rotator = weaponVisual.GetComponent<TurretRotator>();
             if (rotator == null) rotator = weaponVisual.AddComponent<TurretRotator>();
             
@@ -264,7 +281,7 @@ namespace NavalCommand.Editor.Generators
                 rotator.MinPitch = -45f; // Allow shooting down at steep angle
                 rotator.MaxPitch = 89f;  // Allow shooting almost straight up
             }
-            else if (type == WeaponType.CIWS)
+            else if (type == WeaponType.CIWS || type == WeaponType.LaserCIWS) // NEW: Include LaserCIWS
             {
                 rotator.MinPitch = -30f; // Phalanx usually has -25, giving it a bit more
                 rotator.MaxPitch = 89f;  // Anti-missile needs high elevation

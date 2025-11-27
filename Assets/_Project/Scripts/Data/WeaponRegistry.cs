@@ -151,7 +151,7 @@ namespace NavalCommand.Data
             // === KINEMATICS: N/A for Beam ===
             // MovementLogicName not used
             // GravityMultiplier not used
-            // ProjectileSpeed not used
+            ProjectileSpeed = 5000f,         // High speed for "Direct" aiming vector calculation
             ProjectileName = "Beam_Laser",   // Placeholder
             ProjectileStyle = "Laser",       // For future reference
             

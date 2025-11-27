@@ -117,17 +117,24 @@ namespace NavalCommand.Editor.Generators
             var rotator = root.AddComponent<NavalCommand.Entities.Components.TurretRotator>();
 
             // 3. Visual Hierarchy
-            // Material (Default standard)
-            Material grayMat = new Material(Shader.Find("Standard"));
+            // Material (URP Support)
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+
+            Material grayMat = new Material(shader);
             grayMat.color = new Color(0.3f, 0.3f, 0.35f); // Dark Gray Metal
+            if (grayMat.HasProperty("_BaseColor")) grayMat.SetColor("_BaseColor", grayMat.color);
 
-            Material darkMat = new Material(Shader.Find("Standard"));
+            Material darkMat = new Material(shader);
             darkMat.color = new Color(0.1f, 0.1f, 0.15f); // Darker accents
+            if (darkMat.HasProperty("_BaseColor")) darkMat.SetColor("_BaseColor", darkMat.color);
 
-            Material lensMat = new Material(Shader.Find("Standard"));
+            Material lensMat = new Material(shader);
             lensMat.color = Color.cyan;
+            if (lensMat.HasProperty("_BaseColor")) lensMat.SetColor("_BaseColor", lensMat.color);
             lensMat.EnableKeyword("_EMISSION");
-            lensMat.SetColor("_EmissionColor", Color.cyan * 2f);
+            if (lensMat.HasProperty("_EmissionColor")) lensMat.SetColor("_EmissionColor", Color.cyan * 2f);
+            lensMat.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
 
             // Save Materials
             string matDir = "Assets/_Project/Generated/Materials";
@@ -138,42 +145,42 @@ namespace NavalCommand.Editor.Generators
             AssetDatabase.CreateAsset(lensMat, $"{matDir}/Mat_LaserCannon_Lens.mat");
             
             // --- Base ---
-            GameObject baseObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            GameObject baseObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             baseObj.name = "Base";
             baseObj.transform.SetParent(root.transform);
-            baseObj.transform.localPosition = new Vector3(0, 0.25f, 0);
-            baseObj.transform.localScale = new Vector3(2.0f, 0.5f, 2.0f);
+            baseObj.transform.localPosition = new Vector3(0, 0.1f, 0); // Height 2 * 0.1 = 0.2. Center at 0.1.
+            baseObj.transform.localScale = new Vector3(2.5f, 0.1f, 2.5f); // Wide flat cylinder
             baseObj.GetComponent<Renderer>().sharedMaterial = grayMat;
             GameObject.DestroyImmediate(baseObj.GetComponent<Collider>());
 
-            // --- Yoke (Azimuth) ---
-            GameObject yokePivot = new GameObject("Yoke_Pivot");
-            yokePivot.transform.SetParent(root.transform);
-            yokePivot.transform.localPosition = new Vector3(0, 0.5f, 0); // Sit on top of base
-            yokePivot.transform.localRotation = Quaternion.identity;
+            // --- TurretBase (Azimuth/Yoke) ---
+            GameObject turretBase = new GameObject("TurretBase");
+            turretBase.transform.SetParent(root.transform);
+            turretBase.transform.localPosition = new Vector3(0, 0.2f, 0); // Sit on top of base (0.2 height)
+            turretBase.transform.localRotation = Quaternion.identity;
 
             // Yoke Crossbar
             GameObject yokeCross = GameObject.CreatePrimitive(PrimitiveType.Cube);
             yokeCross.name = "Yoke_Crossbar";
-            yokeCross.transform.SetParent(yokePivot.transform);
+            yokeCross.transform.SetParent(turretBase.transform);
             yokeCross.transform.localPosition = new Vector3(0, 0.2f, 0);
             yokeCross.transform.localScale = new Vector3(2.2f, 0.4f, 0.8f);
             yokeCross.GetComponent<Renderer>().sharedMaterial = grayMat;
             GameObject.DestroyImmediate(yokeCross.GetComponent<Collider>());
 
             // Yoke Arms
-            CreateYokeArm(yokePivot.transform, new Vector3(-0.9f, 1.0f, 0), grayMat);
-            CreateYokeArm(yokePivot.transform, new Vector3(0.9f, 1.0f, 0), grayMat);
+            CreateYokeArm(turretBase.transform, new Vector3(-0.9f, 1.0f, 0), grayMat);
+            CreateYokeArm(turretBase.transform, new Vector3(0.9f, 1.0f, 0), grayMat);
 
-            // --- Sphere (Elevation) ---
-            GameObject spherePivot = new GameObject("Sphere_Pivot");
-            spherePivot.transform.SetParent(yokePivot.transform);
-            spherePivot.transform.localPosition = new Vector3(0, 1.2f, 0); // Center of arms
-            spherePivot.transform.localRotation = Quaternion.identity;
+            // --- TurretGun (Elevation/Sphere) ---
+            GameObject turretGun = new GameObject("TurretGun");
+            turretGun.transform.SetParent(turretBase.transform);
+            turretGun.transform.localPosition = new Vector3(0, 1.2f, 0); // Center of arms
+            turretGun.transform.localRotation = Quaternion.identity;
 
             GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             sphere.name = "Turret_Sphere";
-            sphere.transform.SetParent(spherePivot.transform);
+            sphere.transform.SetParent(turretGun.transform);
             sphere.transform.localPosition = Vector3.zero;
             sphere.transform.localScale = Vector3.one * 1.6f;
             sphere.GetComponent<Renderer>().sharedMaterial = grayMat;
@@ -182,7 +189,7 @@ namespace NavalCommand.Editor.Generators
             // --- Lens/Muzzle ---
             GameObject muzzle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             muzzle.name = "Muzzle_Housing";
-            muzzle.transform.SetParent(spherePivot.transform);
+            muzzle.transform.SetParent(turretGun.transform);
             muzzle.transform.localRotation = Quaternion.Euler(90, 0, 0); // Face forward
             muzzle.transform.localPosition = new Vector3(0, 0, 0.6f);
             muzzle.transform.localScale = new Vector3(1.0f, 0.2f, 1.0f);
@@ -193,19 +200,19 @@ namespace NavalCommand.Editor.Generators
             lens.name = "Lens";
             lens.transform.SetParent(muzzle.transform);
             lens.transform.localRotation = Quaternion.identity;
-            lens.transform.localPosition = new Vector3(0, 1.0f, 0); // Protrude slightly
-            lens.transform.localScale = new Vector3(0.7f, 0.1f, 0.7f);
+            lens.transform.localPosition = new Vector3(0, 1.0f, 0); // Flush with surface
+            lens.transform.localScale = new Vector3(0.7f, 0.01f, 0.7f); // Very thin disk
             lens.GetComponent<Renderer>().sharedMaterial = lensMat;
             GameObject.DestroyImmediate(lens.GetComponent<Collider>());
 
             // --- FirePoint ---
             GameObject firePoint = new GameObject("FirePoint");
-            firePoint.transform.SetParent(spherePivot.transform);
-            firePoint.transform.localPosition = new Vector3(0, 0, 1.5f); // In front of sphere
+            firePoint.transform.SetParent(turretGun.transform);
+            firePoint.transform.localPosition = new Vector3(0, 0, 0.8f); // Exact surface (0.6 + 0.2)
             firePoint.transform.localRotation = Quaternion.identity;
 
             // 4. Configuration
-            rotator.Initialize(yokePivot.transform, spherePivot.transform, firePoint.transform);
+            rotator.Initialize(turretBase.transform, turretGun.transform, firePoint.transform);
             rotator.MinPitch = -20f;
             rotator.MaxPitch = 85f;
 

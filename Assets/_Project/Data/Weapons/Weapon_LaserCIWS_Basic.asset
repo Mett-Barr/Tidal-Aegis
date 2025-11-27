@@ -28,7 +28,7 @@ MonoBehaviour:
   _baseDamage: 1.5
   _overrideDamage: 0
   _useOverrideDamage: 0
-  _baseProjectileSpeed: 0
+  _baseProjectileSpeed: 5000
   _overrideProjectileSpeed: 0
   _useOverrideProjectileSpeed: 0
   _baseGravityMultiplier: 1

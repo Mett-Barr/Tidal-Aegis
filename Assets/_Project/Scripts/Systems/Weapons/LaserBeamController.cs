@@ -56,7 +56,7 @@ namespace NavalCommand.Systems.Weapons
             Color hdrCyan = new Color(0f, 2f, 2f, 1f);  // HDR 青色（超过1.0的值）
             lineRenderer.startColor = hdrCyan;
             lineRenderer.endColor = hdrCyan;
-            lineRenderer.numCapVertices = 10;  // 更圆滑的端点
+            lineRenderer.numCapVertices = 0;  // Flat ends to match lens surface
             
             // 创建高发光材质
             Material beamMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
